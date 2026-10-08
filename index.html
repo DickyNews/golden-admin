@@ -186,10 +186,14 @@ const $=id=>document.getElementById(id);
 let customersCache=[];
 
 async function api(path,opt={}){
+  const url=API_BASE+path;
   const headers={'Content-Type':'application/json',...(opt.headers||{})};
-  const r=await fetch(API_BASE+path,{credentials:'include',...opt,headers});
-  const d=await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error(d.detail||d.message||('Request gagal (HTTP '+r.status+')'));
+  let r;
+  try{r=await fetch(url,{credentials:'include',...opt,headers});}
+  catch(e){throw new Error('Koneksi browser gagal ke '+path+'. Kemungkinan CORS, jaringan, TLS, atau koneksi ditutup server. Detail: '+(e&&e.message?e.message:String(e)))}
+  const raw=await r.text();
+  let d={};try{d=raw?JSON.parse(raw):{}}catch{d={raw}};
+  if(!r.ok){const detail=d.detail||d.message||d.raw||'Tanpa response body';throw new Error('HTTP '+r.status+' pada '+path+' — '+detail)}
   return d;
 }
 function setStatus(id,msg,kind=''){
@@ -331,7 +335,7 @@ $('createCustomer').onclick=async()=>{
     $('customerName').value='';$('customerWhatsapp').value='';
     await loadCustomers();
     setStatus('customerStatus','Customer berhasil dibuat.','ok');
-  }catch(e){setStatus('customerStatus',e.message,'err')}
+  }catch(e){setStatus('customerStatus','Gagal menyimpan COIN. '+e.message,'err')}
 };
 $('customerSearch').oninput=renderCustomers;
 $('clearSearch').onclick=()=>{$('customerSearch').value='';renderCustomers()};
