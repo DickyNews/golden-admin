@@ -1,1 +1,350 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dicky News Golden Admin</title><style>:root{--bg:#0b0b0b;--card:#141414;--line:#2b2b2b;--text:#f5f5f5;--muted:#9d9d9d;--yellow:#ffd21a}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}main{width:min(760px,calc(100% - 28px));margin:40px auto}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}h1{margin:0;font-size:27px}.sub{color:var(--muted);font-size:13px;margin-top:5px}.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;margin-bottom:16px}label{display:block;color:var(--muted);font-size:13px;margin-bottom:7px}input,select{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:#0f0f0f;color:var(--text);outline:none}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}button{border:0;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer}.primary{background:var(--yellow);color:#111}.secondary{background:#252525;color:#fff;border:1px solid var(--line)}.actions{display:flex;gap:10px;margin-top:18px}.hidden{display:none}.status{margin-top:14px;color:var(--muted);font-size:13px}.ok{color:#8ee28e}.err{color:#ff7777}.service{display:flex;justify-content:space-between;gap:15px;align-items:center}.badge{padding:7px 10px;border-radius:999px;background:#242000;color:var(--yellow);font-size:12px;font-weight:800}@media(max-width:600px){.row{grid-template-columns:1fr}.top{align-items:flex-start}}</style></head><body><main><div class="top"><div><h1>Dicky News Golden Admin</h1><div class="sub">Kontrol layanan, customer, COIN, dan key</div></div><button class="secondary hidden" id="logout">Keluar</button></div><section class="card" id="loginCard"><h2>Login Admin</h2><div style="margin-top:16px"><label>Username</label><input id="username" value="Dicky News" autocomplete="username"></div><div style="margin-top:14px"><label>Password</label><input id="password" type="password" autocomplete="current-password"></div><div class="actions"><button class="primary" id="login">Masuk</button></div><div class="status" id="loginStatus"></div></section><section class="card hidden" id="panel"><div class="service"><div><h2 style="margin:0">Golden HD TikTok</h2><div class="sub">Pengaturan layanan utama</div></div><span class="badge" id="serviceStatus">MEMUAT</span></div><div class="row" style="margin-top:22px"><div><label>Harga per video (Coin)</label><input id="coin" type="number" min="0" step="1"></div><div><label>Maksimum ukuran video (MB)</label><input id="maxMb" type="number" min="1" step="1"></div></div><div style="margin-top:14px"><label>Status layanan</label><select id="active"><option value="true">AKTIF</option><option value="false">NONAKTIF</option></select></div><div class="actions"><button class="primary" id="save">Simpan Pengaturan</button><button class="secondary" id="refresh">Refresh</button></div><div class="status" id="status"></div></section><section class="card hidden" id="customerPanel"><div class="service"><div><h2 style="margin:0">Customer & Coin</h2><div class="sub">Buat customer, generate key, dan atur saldo COIN.</div></div></div><div class="row" style="margin-top:18px"><div><label>Nama customer</label><input id="customerName" placeholder="Nama customer"></div><div><label>WhatsApp (opsional)</label><input id="customerWhatsapp" placeholder="08xxxxxxxxxx"></div></div><div class="actions"><button class="primary" id="createCustomer">Buat Customer</button><button class="secondary" id="refreshCustomers">Refresh</button></div><div class="status" id="customerStatus"></div><div id="customers" style="margin-top:16px"></div></section></main><script>const API_BASE='https://103-235-74-92.sslip.io';const $=id=>document.getElementById(id);async function api(path,opt={}){const r=await fetch(API_BASE+path,{credentials:'include',...opt,headers:{'Content-Type':'application/json',...(opt.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||d.message||'Request gagal');return d}async function load(){const d=await api('/admin/pricing');const s=d.services[0];if(!s)throw new Error('Service tidak ditemukan');$('coin').value=s.coin_cost;$('maxMb').value=Math.round(s.max_file_size_bytes/1048576);$('active').value=String(!!s.is_active);$('serviceStatus').textContent=s.is_active?'AKTIF':'NONAKTIF';$('status').textContent='Pengaturan terbaru berhasil dimuat.';$('status').className='status ok'}window.loadCustomers=async function(){try{const d=await api('/admin/customers');const list=Array.isArray(d)?d:(d.customers||[]);$('customers').innerHTML=list.length?list.map(c=>{const id=c.id??c.customer_id;const bal=c.coin_balance??c.coins??c.balance??'?';return '<div style="border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px"><b>'+String(c.name??'Customer')+'</b><div class="status">ID '+id+' · COIN '+bal+'</div><div class="row" style="margin-top:10px"><input id="adj-'+id+'" type="number" step="1" value="0" placeholder="+/- COIN"><input id="desc-'+id+'" placeholder="Keterangan"></div><div class="actions"><button class="primary" onclick="adjustCoins('+id+')">Simpan COIN</button><button class="secondary" onclick="generateKey('+id+')">Generate Key</button></div><div id="key-'+id+'" class="status"></div></div>'}).join(''):'<div class="status">Belum ada customer.</div>'}catch(e){$('customerStatus').textContent=e.message;$('customerStatus').className='status err'}};window.generateKey=async function(id){try{const d=await api('/admin/customers/'+id+'/keys',{method:'POST',body:JSON.stringify({})});const k=d.key||d.customer_key||d.token||JSON.stringify(d);$('key-'+id).textContent='KEY: '+k;$('key-'+id).className='status ok'}catch(e){$('key-'+id).textContent=e.message;$('key-'+id).className='status err'}};window.adjustCoins=async function(id){try{const amount=Number($('adj-'+id).value);if(!Number.isInteger(amount))throw new Error('COIN harus bilangan bulat');await api('/admin/customers/'+id+'/coins',{method:'POST',body:JSON.stringify({amount,description:$('desc-'+id).value.trim()||null})});$('customerStatus').textContent='Saldo COIN berhasil diubah.';$('customerStatus').className='status ok';await loadCustomers()}catch(e){$('customerStatus').textContent=e.message;$('customerStatus').className='status err'}};$('login').onclick=async()=>{try{await api('/admin/login',{method:'POST',body:JSON.stringify({username:$('username').value,password:$('password').value})});$('loginCard').classList.add('hidden');$('panel').classList.remove('hidden');$('customerPanel').classList.remove('hidden');$('logout').classList.remove('hidden');await load();await loadCustomers()}catch(e){$('loginStatus').textContent=e.message;$('loginStatus').className='status err'}};$('save').onclick=async()=>{try{const d=await api('/admin/pricing');const s=d.services[0];await api('/admin/pricing/'+s.id,{method:'PUT',body:JSON.stringify({coin_cost:Number($('coin').value),max_file_size_bytes:Number($('maxMb').value)*1048576,is_active:$('active').value==='true'})});await load();$('status').textContent='Berhasil disimpan.';$('status').className='status ok'}catch(e){$('status').textContent=e.message;$('status').className='status err'}};$('refresh').onclick=()=>load().catch(e=>{$('status').textContent=e.message;$('status').className='status err'});$('logout').onclick=async()=>{try{await api('/admin/logout',{method:'POST'})}catch{}location.reload()};$('createCustomer').onclick=async()=>{try{const name=$('customerName').value.trim();if(!name)throw new Error('Nama customer wajib diisi');await api('/admin/customers',{method:'POST',body:JSON.stringify({name,whatsapp:$('customerWhatsapp').value.trim()||null})});$('customerName').value='';$('customerWhatsapp').value='';$('customerStatus').textContent='Customer berhasil dibuat.';$('customerStatus').className='status ok';await loadCustomers()}catch(e){$('customerStatus').textContent=e.message;$('customerStatus').className='status err'}};$('refreshCustomers').onclick=loadCustomers;</script></body></html>
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dicky News Golden Admin</title>
+<style>
+:root{
+  --bg:#080808;--panel:#111;--panel2:#151515;--line:#292929;--line2:#353535;
+  --text:#f5f5f5;--muted:#9b9b9b;--yellow:#ffd21a;--yellow2:#e8bd00;
+  --green:#7ee787;--red:#ff7777;--blue:#78b7ff;
+}
+*{box-sizing:border-box}
+html{min-height:100%;background:var(--bg);overflow-y:auto}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;overflow-x:hidden;overflow-y:auto}
+button,input,select{font:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+.app{width:min(1180px,calc(100% - 28px));margin:0 auto;padding:24px 0 80px}
+.topbar{position:sticky;top:0;z-index:20;margin:0 -14px 20px;padding:14px;background:rgba(8,8,8,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.topbar-inner{width:min(1180px,100%);margin:auto;display:flex;justify-content:space-between;gap:16px;align-items:center}
+.brand h1{margin:0;font-size:25px;line-height:1.15}
+.brand p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;margin-bottom:16px}
+.card-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:18px}
+.card-head h2{margin:0;font-size:19px}
+.card-head p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;background:#282300;color:var(--yellow);font-size:12px;font-weight:800;white-space:nowrap}
+.badge.off{background:#291515;color:var(--red)}
+.badge.ok{background:#122516;color:var(--green)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.full{grid-column:1/-1}
+.field label{display:block;margin:0 0 7px;color:var(--muted);font-size:13px}
+input,select{width:100%;min-height:46px;padding:12px 13px;border:1px solid var(--line2);border-radius:12px;background:#0b0b0b;color:var(--text);outline:none}
+input:focus,select:focus{border-color:var(--yellow)}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.btn{border:0;border-radius:12px;min-height:44px;padding:11px 15px;font-weight:800}
+.primary{background:var(--yellow);color:#111}
+.primary:hover{background:#ffe05c}
+.secondary{background:#242424;color:#fff;border:1px solid var(--line2)}
+.danger{background:#301818;color:#ff9b9b;border:1px solid #542323}
+.status{margin-top:12px;color:var(--muted);font-size:13px;line-height:1.5;white-space:pre-wrap}
+.ok-text{color:var(--green)}.err-text{color:var(--red)}.info-text{color:var(--blue)}
+.hidden{display:none!important}
+.login-wrap{min-height:70vh;display:grid;place-items:center}
+.login-card{width:min(440px,100%);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:25px}
+.login-card h1{margin:0;font-size:24px}.login-card p{color:var(--muted);font-size:13px;line-height:1.5}
+.login-card .field{margin-top:15px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{background:#0c0c0c;border:1px solid var(--line);border-radius:14px;padding:14px}
+.stat small{display:block;color:var(--muted);font-size:12px}.stat b{display:block;margin-top:5px;font-size:18px}
+.customer-tools{display:grid;grid-template-columns:1fr auto;gap:10px}
+.customer-list{display:grid;gap:12px;margin-top:16px}
+.customer-card{background:#0c0c0c;border:1px solid var(--line);border-radius:16px;padding:16px}
+.customer-main{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.customer-name{font-weight:800;font-size:16px}.customer-meta{color:var(--muted);font-size:12px;margin-top:5px}
+.coin{font-weight:900;color:var(--yellow);font-size:18px;white-space:nowrap}
+.customer-actions{display:grid;grid-template-columns:150px 1fr auto auto;gap:8px;margin-top:13px}
+.key-box{margin-top:10px;padding:11px;border:1px dashed var(--line2);border-radius:11px;background:#101010;word-break:break-all;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;color:#ddd}
+.key-box b{color:var(--yellow)}
+.api-list{display:grid;gap:8px}
+.api-row{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.api-row:last-child{border-bottom:0}.api-row span:first-child{color:var(--muted)}
+.note{padding:12px;border:1px solid var(--line);border-radius:12px;color:var(--muted);font-size:12px;line-height:1.55;background:#0c0c0c}
+#dashboard{display:none}
+#dashboard.ready{display:block}
+@media(max-width:760px){
+ .app{width:min(100% - 18px,1180px);padding-top:10px}
+ .topbar{margin:0 -9px 14px}
+ .grid{grid-template-columns:1fr}
+ .full{grid-column:auto}
+ .stat-grid{grid-template-columns:1fr}
+ .customer-actions{grid-template-columns:1fr 1fr}
+ .customer-actions .wide{grid-column:1/-1}
+ .customer-actions button{width:100%}
+ .topbar-inner{align-items:flex-start}.brand h1{font-size:20px}
+}
+</style>
+</head>
+<body>
+<div id="loginView" class="login-wrap">
+  <div class="login-card">
+    <h1>Dicky News Golden Admin</h1>
+    <p>Control plane untuk Golden HD TikTok. Admin Web hanya mengatur data yang memang disediakan oleh API.</p>
+    <div class="field"><label>Username</label><input id="username" value="Dicky News" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password"></div>
+    <div class="actions"><button class="btn primary" id="login">Masuk ke Admin</button></div>
+    <div class="status" id="loginStatus"></div>
+  </div>
+</div>
+
+<div id="dashboard">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <h1>Dicky News Golden Admin</h1>
+        <p>Kontrol layanan, customer, COIN, key, dan koneksi API</p>
+      </div>
+      <div class="top-actions">
+        <span class="badge ok" id="apiBadge">API ONLINE</span>
+        <button class="btn secondary" id="logout">Keluar</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="app">
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Ringkasan sistem</h2><p>Status dasar yang sedang terbaca dari backend.</p></div>
+        <button class="btn secondary" id="refreshAll">Refresh Semua</button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><small>Service</small><b id="statService">-</b></div>
+        <div class="stat"><small>Harga / video</small><b id="statCoin">-</b></div>
+        <div class="stat"><small>Maksimum file</small><b id="statMax">-</b></div>
+      </div>
+      <div class="status" id="systemStatus"></div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-head">
+          <div><h2>Golden HD TikTok</h2><p>Pengaturan layanan utama.</p></div>
+          <span class="badge" id="serviceStatus">MEMUAT</span>
+        </div>
+        <div class="grid">
+          <div class="field"><label>Harga per video (COIN)</label><input id="coin" type="number" min="0" step="1"></div>
+          <div class="field"><label>Maksimum ukuran video (MB)</label><input id="maxMb" type="number" min="1" step="1"></div>
+          <div class="field full"><label>Status layanan</label><select id="active"><option value="true">AKTIF</option><option value="false">NONAKTIF</option></select></div>
+        </div>
+        <div class="actions"><button class="btn primary" id="save">Simpan Pengaturan</button><button class="btn secondary" id="refreshPricing">Refresh</button></div>
+        <div class="status" id="pricingStatus"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <div><h2>Koneksi API</h2><p>Endpoint yang digunakan Admin Web.</p></div>
+          <span class="badge ok" id="healthBadge">CHECK</span>
+        </div>
+        <div class="api-list">
+          <div class="api-row"><span>API Base</span><b>HTTPS</b></div>
+          <div class="api-row"><span>Health</span><b id="healthText">Memeriksa...</b></div>
+          <div class="api-row"><span>Admin session</span><b id="sessionText">Aktif</b></div>
+          <div class="api-row"><span>Service code</span><b>golden_hd_tiktok</b></div>
+        </div>
+        <div class="status" id="healthStatus"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Customer & COIN</h2><p>Buat akun customer, ubah saldo COIN, dan generate key akses.</p></div>
+        <button class="btn secondary" id="refreshCustomers">Refresh Customer</button>
+      </div>
+
+      <div class="grid">
+        <div class="field"><label>Nama customer</label><input id="customerName" placeholder="Nama customer"></div>
+        <div class="field"><label>WhatsApp (opsional)</label><input id="customerWhatsapp" placeholder="08xxxxxxxxxx" maxlength="30"></div>
+      </div>
+      <div class="actions"><button class="btn primary" id="createCustomer">Buat Customer</button></div>
+      <div class="status" id="customerStatus"></div>
+
+      <div class="customer-tools" style="margin-top:20px">
+        <input id="customerSearch" placeholder="Cari nama / ID customer...">
+        <button class="btn secondary" id="clearSearch">Reset</button>
+      </div>
+      <div id="customers" class="customer-list"><div class="note">Memuat daftar customer...</div></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Batasan arsitektur</h2><p>Admin Web tidak menyimpan atau menjalankan Golden Engine.</p></div>
+      </div>
+      <div class="note">
+        Admin Web hanya menjadi control plane: membaca dan mengubah data melalui API. Golden Engine, queue, database, coin authority, autentikasi server, dan proses video tetap berada di backend/VPS. Customer Web tetap menjadi frontend customer.
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const API_BASE='https://103-235-74-92.sslip.io';
+const SERVICE_CODE='golden_hd_tiktok';
+const $=id=>document.getElementById(id);
+let customersCache=[];
+
+async function api(path,opt={}){
+  const headers={'Content-Type':'application/json',...(opt.headers||{})};
+  const r=await fetch(API_BASE+path,{credentials:'include',...opt,headers});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(d.detail||d.message||('Request gagal (HTTP '+r.status+')'));
+  return d;
+}
+function setStatus(id,msg,kind=''){
+  const el=$(id); if(!el)return;
+  el.textContent=msg||'';
+  el.className='status '+(kind?kind+'-text':'');
+}
+function esc(v){
+  return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+function getList(d){
+  if(Array.isArray(d))return d;
+  if(Array.isArray(d.customers))return d.customers;
+  if(Array.isArray(d.items))return d.items;
+  return [];
+}
+function customerId(c){return c.id??c.customer_id??c.uuid??''}
+function customerName(c){return c.name??c.customer_name??'Customer'}
+function customerBalance(c){return c.coin_balance??c.coins??c.balance??c.coin??0}
+
+async function loadPricing(){
+  const d=await api('/admin/pricing');
+  const services=Array.isArray(d.services)?d.services:[];
+  const s=services.find(x=>x.service_code===SERVICE_CODE)||services[0];
+  if(!s)throw new Error('Service tidak ditemukan');
+  $('coin').value=Number(s.coin_cost??0);
+  $('maxMb').value=Math.round(Number(s.max_file_size_bytes??0)/1048576);
+  $('active').value=String(!!s.is_active);
+  $('serviceStatus').textContent=s.is_active?'AKTIF':'NONAKTIF';
+  $('serviceStatus').className='badge '+(s.is_active?'':'off');
+  $('statService').textContent=s.name||SERVICE_CODE;
+  $('statCoin').textContent=String(s.coin_cost??0)+' COIN';
+  $('statMax').textContent=Math.round(Number(s.max_file_size_bytes??0)/1048576)+' MB';
+  setStatus('pricingStatus','Pengaturan terbaru berhasil dimuat.','ok');
+}
+
+async function loadCustomers(){
+  const d=await api('/admin/customers');
+  customersCache=getList(d);
+  renderCustomers();
+  setStatus('customerStatus',customersCache.length+' customer terbaca dari API.','ok');
+}
+function renderCustomers(){
+  const q=$('customerSearch').value.trim().toLowerCase();
+  const list=customersCache.filter(c=>(customerName(c)+' '+customerId(c)).toLowerCase().includes(q));
+  if(!list.length){
+    $('customers').innerHTML='<div class="note">'+(customersCache.length?'Tidak ada customer yang cocok dengan pencarian.':'Belum ada customer.')+'</div>';
+    return;
+  }
+  $('customers').innerHTML=list.map(c=>{
+    const id=customerId(c), name=customerName(c), bal=customerBalance(c);
+    return '<article class="customer-card" data-id="'+esc(id)+'">'+
+      '<div class="customer-main"><div><div class="customer-name">'+esc(name)+'</div><div class="customer-meta">ID: '+esc(id)+'</div></div><div class="coin">'+esc(bal)+' COIN</div></div>'+
+      '<div class="customer-actions">'+
+      '<input class="adj" type="number" step="1" value="0" placeholder="+ / - COIN">'+
+      '<input class="desc" placeholder="Keterangan perubahan saldo">'+
+      '<button class="btn primary adjust">Simpan COIN</button>'+
+      '<button class="btn secondary key">Generate Key</button>'+
+      '</div><div class="key-box result-key hidden"></div></article>';
+  }).join('');
+}
+async function adjustCard(card){
+  const id=card.dataset.id;
+  const amount=Number(card.querySelector('.adj').value);
+  const desc=card.querySelector('.desc').value.trim()||null;
+  if(!Number.isInteger(amount))throw new Error('COIN harus bilangan bulat');
+  if(amount===0)throw new Error('Masukkan jumlah COIN selain 0');
+  await api('/admin/customers/'+encodeURIComponent(id)+'/coins',{method:'POST',body:JSON.stringify({amount,description:desc})});
+  setStatus('customerStatus','Saldo COIN customer berhasil diubah.','ok');
+  await loadCustomers();
+}
+async function generateCard(card){
+  const id=card.dataset.id;
+  const d=await api('/admin/customers/'+encodeURIComponent(id)+'/keys',{method:'POST',body:JSON.stringify({})});
+  const key=d.key||d.customer_key||d.token||d.access_key||'';
+  const box=card.querySelector('.result-key');
+  box.classList.remove('hidden');
+  box.innerHTML='<b>KEY:</b> '+esc(key||JSON.stringify(d));
+  setStatus('customerStatus','Key berhasil dibuat untuk customer ID '+id+'.','ok');
+}
+async function checkHealth(){
+  try{
+    const r=await fetch(API_BASE+'/health',{cache:'no-store'});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    $('apiBadge').textContent='API ONLINE';$('apiBadge').className='badge ok';
+    $('healthBadge').textContent='ONLINE';$('healthBadge').className='badge ok';
+    $('healthText').textContent=d.status||'OK';
+    setStatus('healthStatus','Backend merespons melalui HTTPS.','ok');
+  }catch(e){
+    $('apiBadge').textContent='API ERROR';$('apiBadge').className='badge off';
+    $('healthBadge').textContent='ERROR';$('healthBadge').className='badge off';
+    $('healthText').textContent='Gagal';
+    setStatus('healthStatus',e.message,'err');
+  }
+}
+async function openDashboard(){
+  $('loginView').classList.add('hidden');
+  $('dashboard').classList.add('ready');
+  await Promise.all([loadPricing(),loadCustomers(),checkHealth()]);
+}
+$('login').onclick=async()=>{
+  try{
+    setStatus('loginStatus','Memverifikasi akun admin...');
+    await api('/admin/login',{method:'POST',body:JSON.stringify({username:$('username').value.trim(),password:$('password').value})});
+    await openDashboard();
+  }catch(e){setStatus('loginStatus',e.message,'err')}
+};
+$('logout').onclick=async()=>{
+  try{await api('/admin/logout',{method:'POST'})}catch{}
+  location.reload();
+};
+$('save').onclick=async()=>{
+  try{
+    const d=await api('/admin/pricing');
+    const services=Array.isArray(d.services)?d.services:[];
+    const s=services.find(x=>x.service_code===SERVICE_CODE)||services[0];
+    if(!s)throw new Error('Service tidak ditemukan');
+    const coin=Number($('coin').value), mb=Number($('maxMb').value);
+    if(!Number.isInteger(coin)||coin<0)throw new Error('Harga COIN tidak valid');
+    if(!Number.isInteger(mb)||mb<1)throw new Error('Ukuran maksimum tidak valid');
+    await api('/admin/pricing/'+encodeURIComponent(s.id),{method:'PUT',body:JSON.stringify({coin_cost:coin,max_file_size_bytes:mb*1048576,is_active:$('active').value==='true'})});
+    await loadPricing();
+    setStatus('pricingStatus','Pengaturan berhasil disimpan ke backend.','ok');
+  }catch(e){setStatus('pricingStatus',e.message,'err')}
+};
+$('refreshPricing').onclick=()=>loadPricing().catch(e=>setStatus('pricingStatus',e.message,'err'));
+$('refreshCustomers').onclick=()=>loadCustomers().catch(e=>setStatus('customerStatus',e.message,'err'));
+$('refreshAll').onclick=async()=>{
+  try{await Promise.all([loadPricing(),loadCustomers(),checkHealth()]);setStatus('systemStatus','Semua data berhasil diperbarui.','ok')}
+  catch(e){setStatus('systemStatus',e.message,'err')}
+};
+$('createCustomer').onclick=async()=>{
+  try{
+    const name=$('customerName').value.trim();
+    const whatsapp=$('customerWhatsapp').value.trim()||null;
+    if(!name)throw new Error('Nama customer wajib diisi');
+    await api('/admin/customers',{method:'POST',body:JSON.stringify({name,whatsapp})});
+    $('customerName').value='';$('customerWhatsapp').value='';
+    await loadCustomers();
+    setStatus('customerStatus','Customer berhasil dibuat.','ok');
+  }catch(e){setStatus('customerStatus',e.message,'err')}
+};
+$('customerSearch').oninput=renderCustomers;
+$('clearSearch').onclick=()=>{$('customerSearch').value='';renderCustomers()};
+$('customers').addEventListener('click',async e=>{
+  const card=e.target.closest('.customer-card');if(!card)return;
+  try{
+    if(e.target.closest('.adjust')){e.target.disabled=true;await adjustCard(card)}
+    if(e.target.closest('.key')){e.target.disabled=true;await generateCard(card)}
+  }catch(err){setStatus('customerStatus',err.message,'err')}
+  finally{document.querySelectorAll('.customer-card button').forEach(b=>b.disabled=false)}
+});
+
+checkHealth();
+</script>
+</body>
+</html>
