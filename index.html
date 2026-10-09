@@ -121,10 +121,11 @@ input:focus,select:focus{border-color:var(--yellow)}
     <div class="grid">
       <section class="card">
         <div class="card-head">
-          <div><h2>Golden HD TikTok</h2><p>Pengaturan layanan utama.</p></div>
+          <div><h2>Pengaturan Layanan</h2><p>Atur harga, batas ukuran, dan status SDR/HDR secara terpisah.</p></div>
           <span class="badge" id="serviceStatus">MEMUAT</span>
         </div>
         <div class="grid">
+          <div class="field full"><label>Pilih layanan</label><select id="serviceSelect"><option value="golden_hd_tiktok">Golden HD TikTok (SDR)</option><option value="golden_hdr_tiktok">Golden HDR TikTok</option></select></div>
           <div class="field"><label>Harga per video (COIN)</label><input id="coin" type="number" min="0" step="1"></div>
           <div class="field"><label>Maksimum ukuran video (MB)</label><input id="maxMb" type="number" min="1" step="1"></div>
           <div class="field full"><label>Status layanan</label><select id="active"><option value="true">AKTIF</option><option value="false">NONAKTIF</option></select></div>
@@ -142,7 +143,7 @@ input:focus,select:focus{border-color:var(--yellow)}
           <div class="api-row"><span>API Base</span><b>HTTPS</b></div>
           <div class="api-row"><span>Health</span><b id="healthText">Memeriksa...</b></div>
           <div class="api-row"><span>Admin session</span><b id="sessionText">Aktif</b></div>
-          <div class="api-row"><span>Service code</span><b>golden_hd_tiktok</b></div>
+          <div class="api-row"><span>Service code</span><b id="apiServiceCode">golden_hd_tiktok</b></div>
         </div>
         <div class="status" id="healthStatus"></div>
       </section>
@@ -181,7 +182,7 @@ input:focus,select:focus{border-color:var(--yellow)}
 
 <script>
 const API_BASE='https://103-235-74-92.sslip.io';
-const SERVICE_CODE='golden_hd_tiktok';
+let selectedServiceCode='golden_hd_tiktok';
 const $=id=>document.getElementById(id);
 let customersCache=[];
 
@@ -217,14 +218,16 @@ function customerBalance(c){return c.coin_balance??c.coins??c.balance??c.coin??0
 async function loadPricing(){
   const d=await api('/admin/pricing');
   const services=Array.isArray(d.services)?d.services:[];
-  const s=services.find(x=>x.service_code===SERVICE_CODE)||services[0];
-  if(!s)throw new Error('Service tidak ditemukan');
+  const s=services.find(x=>x.service_code===selectedServiceCode);
+  if(!s)throw new Error('Layanan '+selectedServiceCode+' tidak ditemukan di backend');
+  $('serviceSelect').value=s.service_code;
+  $('apiServiceCode').textContent=s.service_code;
   $('coin').value=Number(s.coin_cost??0);
   $('maxMb').value=Math.round(Number(s.max_file_size_bytes??0)/1048576);
   $('active').value=String(!!s.is_active);
   $('serviceStatus').textContent=s.is_active?'AKTIF':'NONAKTIF';
   $('serviceStatus').className='badge '+(s.is_active?'':'off');
-  $('statService').textContent=s.name||SERVICE_CODE;
+  $('statService').textContent=(s.name||s.service_code)+(s.service_code==='golden_hdr_tiktok'?' (HDR)':' (SDR)');
   $('statCoin').textContent=String(s.coin_cost??0)+' COIN';
   $('statMax').textContent=Math.round(Number(s.max_file_size_bytes??0)/1048576)+' MB';
   setStatus('pricingStatus','Pengaturan terbaru berhasil dimuat.','ok');
@@ -310,8 +313,8 @@ $('save').onclick=async()=>{
   try{
     const d=await api('/admin/pricing');
     const services=Array.isArray(d.services)?d.services:[];
-    const s=services.find(x=>x.service_code===SERVICE_CODE)||services[0];
-    if(!s)throw new Error('Service tidak ditemukan');
+    const s=services.find(x=>x.service_code===selectedServiceCode);
+    if(!s)throw new Error('Layanan '+selectedServiceCode+' tidak ditemukan di backend');
     const coin=Number($('coin').value), mb=Number($('maxMb').value);
     if(!Number.isInteger(coin)||coin<0)throw new Error('Harga COIN tidak valid');
     if(!Number.isInteger(mb)||mb<1)throw new Error('Ukuran maksimum tidak valid');
@@ -320,6 +323,7 @@ $('save').onclick=async()=>{
     setStatus('pricingStatus','Pengaturan berhasil disimpan ke backend.','ok');
   }catch(e){setStatus('pricingStatus',e.message,'err')}
 };
+$('serviceSelect').onchange=()=>{selectedServiceCode=$('serviceSelect').value;loadPricing().catch(e=>setStatus('pricingStatus',e.message,'err'))};
 $('refreshPricing').onclick=()=>loadPricing().catch(e=>setStatus('pricingStatus',e.message,'err'));
 $('refreshCustomers').onclick=()=>loadCustomers().catch(e=>setStatus('customerStatus',e.message,'err'));
 $('refreshAll').onclick=async()=>{
