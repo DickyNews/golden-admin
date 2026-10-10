@@ -143,6 +143,7 @@ input:focus,select:focus{border-color:var(--yellow)}
         <div class="api-list">
           <div class="api-row"><span>API Base</span><b>HTTPS</b></div>
           <div class="api-row"><span>Health</span><b id="healthText">Memeriksa...</b></div>
+          <div class="api-row"><span>Database</span><b id="databaseHealthText">Memeriksa...</b></div>
           <div class="api-row"><span>Admin session</span><b id="sessionText">Aktif</b></div>
           <div class="api-row"><span>Service code</span><b id="apiServiceCode">golden_hd_tiktok</b></div>
         </div>
@@ -302,19 +303,22 @@ async function generateCard(card){
   setStatus('customerStatus','Key berhasil dibuat untuk customer ID '+id+'.','ok');
 }
 async function checkHealth(){
-  try{
-    const r=await fetch(API_BASE+'/health',{cache:'no-store'});
-    const d=await r.json().catch(()=>({}));
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    $('apiBadge').textContent='API ONLINE';$('apiBadge').className='badge ok';
-    $('healthBadge').textContent='ONLINE';$('healthBadge').className='badge ok';
-    $('healthText').textContent=d.status||'OK';
-    setStatus('healthStatus','Backend merespons melalui HTTPS.','ok');
-  }catch(e){
-    $('apiBadge').textContent='API ERROR';$('apiBadge').className='badge off';
-    $('healthBadge').textContent='ERROR';$('healthBadge').className='badge off';
-    $('healthText').textContent='Gagal';
-    setStatus('healthStatus',e.message,'err');
+  const checks=await Promise.allSettled([
+    fetch(API_BASE+'/health',{cache:'no-store'}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error('API HTTP '+r.status);return d}),
+    fetch(API_BASE+'/health/database',{cache:'no-store'}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error('Database HTTP '+r.status);return d})
+  ]);
+  const apiOk=checks[0].status==='fulfilled';
+  const dbOk=checks[1].status==='fulfilled'&&checks[1].value.status==='ok';
+  $('apiBadge').textContent=apiOk?'API ONLINE':'API ERROR';$('apiBadge').className='badge '+(apiOk?'ok':'off');
+  $('healthBadge').textContent=apiOk&&dbOk?'ONLINE':(apiOk?'DB ERROR':'ERROR');$('healthBadge').className='badge '+(apiOk&&dbOk?'ok':'off');
+  $('healthText').textContent=apiOk?(checks[0].value.status||'OK'):'Gagal';
+  $('databaseHealthText').textContent=dbOk?'Terhubung':(checks[1].status==='fulfilled'?(checks[1].value.status||'Tidak sehat'):'Gagal');
+  if(apiOk&&dbOk)setStatus('healthStatus','API dan database merespons melalui HTTPS.','ok');
+  else{
+    const details=[];
+    if(!apiOk)details.push(checks[0].reason?.message||'API gagal');
+    if(!dbOk)details.push(checks[1].status==='rejected'?(checks[1].reason?.message||'Database gagal'):'Database tidak sehat');
+    setStatus('healthStatus',details.join(' · '),'err');
   }
 }
 async function openDashboard(){
