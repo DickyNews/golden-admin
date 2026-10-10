@@ -464,6 +464,8 @@ $('customers').addEventListener('click',async e=>{
 });
 
 checkHealth();
+// Restore the admin dashboard only when the API confirms an existing session.
+(async()=>{try{await api('/admin/me');await openDashboard()}catch(e){/* No valid session: keep the login screen visible. */}})();
 </script>
 </body>
 </html>
