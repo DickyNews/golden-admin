@@ -186,7 +186,7 @@ input:focus,select:focus{border-color:var(--yellow)}
       </div>
       <div class="actions">
         <button class="btn primary" id="loadCustomerHistory">Muat Riwayat</button>
-        <button class="btn danger" id="deleteCustomerHistory">Hapus Semua Riwayat Customer</button>
+        <button class="btn danger" id="deleteCustomerHistory" disabled>Hapus Semua Riwayat Customer</button>
       </div>
       <div class="status" id="storageStatus"></div>
       <div id="customerHistory" class="customer-list"><div class="note">Pilih customer, lalu tekan Muat Riwayat.</div></div>
@@ -395,8 +395,10 @@ async function loadStorageStats(){
 async function loadCustomerHistory(){
   const id=$('historyCustomer').value;
   if(!id)throw new Error('Pilih customer terlebih dahulu.');
+  $('deleteCustomerHistory').disabled=true;
   const d=await api('/admin/customers/'+encodeURIComponent(id)+'/jobs');
   const jobs=Array.isArray(d)?d:(Array.isArray(d.jobs)?d.jobs:(Array.isArray(d.items)?d.items:[]));
+  $('deleteCustomerHistory').disabled=false;
   if(!jobs.length){$('customerHistory').innerHTML='<div class="note">Tidak ada riwayat job untuk customer ini.</div>';return;}
   $('customerHistory').innerHTML=jobs.map(j=>{
     const status=String(j.status||'unknown').toLowerCase();
