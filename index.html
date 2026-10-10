@@ -410,6 +410,10 @@ async function loadCustomerHistory(){
   }).join('');
 }
 $('refreshStorage').onclick=()=>loadStorageStats();
+$('historyCustomer').addEventListener('change',()=>{
+  $('deleteCustomerHistory').disabled=true;
+  $('customerHistory').innerHTML='<div class="note">Customer berubah. Muat riwayat customer terpilih sebelum melakukan tindakan.</div>';
+});
 $('loadCustomerHistory').onclick=async()=>{
   try{setStatus('storageStatus','Memuat riwayat customer…');await loadCustomerHistory();setStatus('storageStatus','Riwayat berhasil dimuat.','ok')}
   catch(e){setStatus('storageStatus','Riwayat belum tersedia: '+e.message,'err')}
