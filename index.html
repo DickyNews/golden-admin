@@ -398,8 +398,10 @@ async function loadCustomerHistory(){
   $('deleteCustomerHistory').disabled=true;
   const d=await api('/admin/customers/'+encodeURIComponent(id)+'/jobs');
   const jobs=Array.isArray(d)?d:(Array.isArray(d.jobs)?d.jobs:(Array.isArray(d.items)?d.items:[]));
-  $('deleteCustomerHistory').disabled=false;
+  const hasActiveJobs=jobs.some(j=>['queued','running','processing','pending'].includes(String(j.status||'unknown').toLowerCase()));
+  $('deleteCustomerHistory').disabled=jobs.length===0||hasActiveJobs;
   if(!jobs.length){$('customerHistory').innerHTML='<div class="note">Tidak ada riwayat job untuk customer ini.</div>';return;}
+  if(hasActiveJobs)setStatus('storageStatus','Ada job aktif/antrean. Hapus semua dinonaktifkan demi keamanan.','err');
   $('customerHistory').innerHTML=jobs.map(j=>{
     const status=String(j.status||'unknown').toLowerCase();
     const active=['queued','running','processing','pending'].includes(status);
