@@ -7,7 +7,7 @@
 <style>
 :root{
   --bg:#080808;--panel:#111;--panel2:#151515;--line:#292929;--line2:#353535;
-  --text:#f5f5f5;--muted:#9b9b9b;--yellow:#ffd21a;--yellow2:#e8bd00;
+  --text:#f5f5f5;--muted:#9b9b9b;--yellow:#62f3ff;--yellow2:#a78bfa;
   --green:#7ee787;--red:#ff7777;--blue:#78b7ff;
 }
 *{box-sizing:border-box}
@@ -26,7 +26,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .card-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:18px}
 .card-head h2{margin:0;font-size:19px}
 .card-head p{margin:5px 0 0;color:var(--muted);font-size:13px}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;background:#282300;color:var(--yellow);font-size:12px;font-weight:800;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;background:rgba(98,243,255,.1);color:var(--yellow);font-size:12px;font-weight:800;white-space:nowrap}
 .badge.off{background:#291515;color:var(--red)}
 .badge.ok{background:#122516;color:var(--green)}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
@@ -37,7 +37,7 @@ input:focus,select:focus{border-color:var(--yellow)}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
 .btn{border:0;border-radius:12px;min-height:44px;padding:11px 15px;font-weight:800}
 .primary{background:var(--yellow);color:#111}
-.primary:hover{background:#ffe05c}
+.primary:hover{background:#9bf8ff}
 .secondary{background:#242424;color:#fff;border:1px solid var(--line2)}
 .danger{background:#301818;color:#ff9b9b;border:1px solid #542323}
 .status{margin-top:12px;color:var(--muted);font-size:13px;line-height:1.5;white-space:pre-wrap}
@@ -78,7 +78,7 @@ input:focus,select:focus{border-color:var(--yellow)}
  .topbar-inner{align-items:flex-start}.brand h1{font-size:20px}
 }
 /* Accessibility: visible keyboard focus and reduced-motion support */
-:where(button,a,input,textarea,select,[tabindex]):focus-visible{outline:2px solid #f7c948;outline-offset:3px}
+:where(button,a,input,textarea,select,[tabindex]):focus-visible{outline:2px solid #62f3ff;outline-offset:3px}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
