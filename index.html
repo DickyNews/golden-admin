@@ -412,6 +412,7 @@ async function loadCustomerHistory(){
     const bytes=Number(j.input_size_bytes||0)+Number(j.output_size_bytes||0);
     return '<article class="customer-card"><div class="history-row"><div><div class="history-title">Job #'+esc(j.id)+' · '+esc(j.service_code||j.service_name||'Layanan')+' · '+esc(status.toUpperCase())+'</div><div class="history-meta">Input: '+esc(j.original_filename||j.input_path||'—')+' · '+formatBytes(j.input_size_bytes)+' | Output: '+formatBytes(j.output_size_bytes)+' | Total: '+formatBytes(bytes)+'</div><div class="history-meta">Dibuat: '+esc(j.created_at||'—')+'</div></div><button class="btn danger delete-one" data-job-id="'+esc(j.id)+'" '+(active?'disabled title="Job aktif tidak boleh dihapus"':'')+'>Hapus Riwayat & File</button></div></article>';
   }).join('');
+  return hasActiveJobs;
 }
 $('refreshStorage').onclick=()=>loadStorageStats();
 $('historyCustomer').addEventListener('change',()=>{
@@ -419,8 +420,12 @@ $('historyCustomer').addEventListener('change',()=>{
   $('customerHistory').innerHTML='<div class="note">Customer berubah. Muat riwayat customer terpilih sebelum melakukan tindakan.</div>';
 });
 $('loadCustomerHistory').onclick=async()=>{
-  try{setStatus('storageStatus','Memuat riwayat customer…');await loadCustomerHistory();setStatus('storageStatus','Riwayat berhasil dimuat.','ok')}
-  catch(e){setStatus('storageStatus','Riwayat belum tersedia: '+e.message,'err')}
+  try{
+    setStatus('storageStatus','Memuat riwayat customer…');
+    const hasActiveJobs=await loadCustomerHistory();
+    if(hasActiveJobs)setStatus('storageStatus','Riwayat dimuat, tetapi ada job aktif/antrean. Penghapusan massal dinonaktifkan.','err');
+    else setStatus('storageStatus','Riwayat berhasil dimuat.','ok');
+  }catch(e){setStatus('storageStatus','Riwayat belum tersedia: '+e.message,'err')}
 };
 $('deleteCustomerHistory').onclick=async()=>{
   const id=$('historyCustomer').value;
