@@ -82,6 +82,93 @@ input:focus,select:focus{border-color:var(--yellow)}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+/* NEON ADMIN INTERFACE V1 — precise cyan/violet system, no gold accents */
+:root{
+  color-scheme:dark;
+  --bg:#05070b;--panel:rgba(12,18,28,.88);--panel2:rgba(16,25,39,.9);
+  --line:rgba(98,243,255,.18);--line2:rgba(135,160,190,.3);
+  --text:#f2f8ff;--muted:#91a4bb;--yellow:#62f3ff;--yellow2:#a78bfa;
+  --green:#65fbd2;--red:#ff718f;--blue:#72a7ff;
+  --neon-cyan:#62f3ff;--neon-violet:#a78bfa;
+}
+html{background:var(--bg);scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(ellipse at 12% 0%,rgba(40,190,255,.13),transparent 38%),
+    radial-gradient(ellipse at 94% 48%,rgba(130,82,255,.12),transparent 35%),
+    linear-gradient(145deg,#05070b,#080d17 58%,#070812);
+  background-attachment:fixed;
+}
+body::before,body::after{
+  content:"";position:fixed;pointer-events:none;z-index:0;width:36vw;height:36vw;min-width:240px;min-height:240px;
+  border-radius:50%;filter:blur(90px);opacity:.12;will-change:transform;
+}
+body::before{left:-16vw;top:8vh;background:#20dfff;animation:adminNebulaA 18s ease-in-out infinite alternate}
+body::after{right:-18vw;bottom:0;background:#8a5cff;animation:adminNebulaB 22s ease-in-out infinite alternate}
+#loginView,.app{position:relative;z-index:1}
+.topbar{background:rgba(5,8,14,.82);border-bottom-color:rgba(98,243,255,.2);box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.brand h1{letter-spacing:-.045em;text-shadow:0 0 24px rgba(98,243,255,.14)}
+.brand p,.card-head p{line-height:1.55}
+.card,.login-card{
+  background:linear-gradient(145deg,rgba(16,25,39,.92),rgba(9,14,23,.92));
+  border:1px solid rgba(98,243,255,.17);border-radius:18px;
+  box-shadow:0 12px 38px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.035);
+  animation:adminCardBreathe 7s ease-in-out infinite;
+  transition:border-color .22s ease,box-shadow .22s ease,transform .22s ease;
+}
+.card:nth-of-type(2n),.grid>.card:nth-child(2n){animation-delay:-2.7s}
+.card:hover,.login-card:hover{border-color:rgba(98,243,255,.42);box-shadow:0 16px 42px rgba(0,0,0,.3),0 0 22px rgba(98,243,255,.055)}
+.card-head h2{letter-spacing:-.025em}
+.badge{background:rgba(98,243,255,.1);color:var(--neon-cyan);border:1px solid rgba(98,243,255,.24);box-shadow:0 0 18px rgba(98,243,255,.05)}
+.badge.ok{background:rgba(101,251,210,.09);color:var(--green);border-color:rgba(101,251,210,.25)}
+.badge.off{background:rgba(255,113,143,.09);color:var(--red);border-color:rgba(255,113,143,.25)}
+input,select{
+  background:rgba(4,9,16,.86);border:1px solid rgba(135,160,190,.28);border-radius:11px;
+  transition:border-color .2s ease,box-shadow .2s ease,background .2s ease;
+}
+input:hover,select:hover{border-color:rgba(98,243,255,.48)}
+input:focus,select:focus{border-color:var(--neon-cyan);box-shadow:0 0 0 3px rgba(98,243,255,.1),0 0 22px rgba(98,243,255,.08);background:#07111a}
+.btn{
+  position:relative;isolation:isolate;overflow:hidden;border-radius:11px;letter-spacing:.005em;
+  transition:transform .2s ease,box-shadow .2s ease,background .2s ease,border-color .2s ease;
+  animation:adminButtonIdle 3.6s ease-in-out infinite;
+}
+.btn::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(110deg,transparent 15%,rgba(255,255,255,.17) 48%,transparent 78%);transform:translateX(-125%);animation:adminButtonSweep 6s ease-in-out infinite}
+.btn:hover{transform:translateY(-2px);box-shadow:0 0 0 1px rgba(98,243,255,.3),0 8px 26px rgba(98,243,255,.12)}
+.btn:active{transform:translateY(0) scale(.985)}
+.btn:disabled{animation:none;box-shadow:none}
+.primary{background:linear-gradient(115deg,#62f3ff,#8cecff);color:#041018;box-shadow:0 0 22px rgba(98,243,255,.14)}
+.primary:hover{background:linear-gradient(115deg,#9bf8ff,#b5a0ff);color:#041018}
+.secondary{background:rgba(22,34,50,.9);color:#e9f6ff;border:1px solid rgba(98,243,255,.23)}
+.secondary:hover{background:rgba(26,49,68,.95);border-color:rgba(98,243,255,.58)}
+.danger{background:rgba(56,19,35,.9);color:#ff9fb4;border:1px solid rgba(255,113,143,.3)}
+.stat,.customer-card,.note,.key-box{
+  background:rgba(5,11,19,.72);border-color:rgba(98,243,255,.14);
+  transition:border-color .22s ease,box-shadow .22s ease,transform .22s ease;
+}
+.stat:hover,.customer-card:hover{border-color:rgba(98,243,255,.4);box-shadow:0 0 24px rgba(98,243,255,.055);transform:translateY(-1px)}
+.coin,.key-box b{color:var(--neon-cyan)}
+.api-row{border-bottom-color:rgba(98,243,255,.12)}
+:where(button,a,input,textarea,select,[tabindex]):focus-visible{outline:2px solid #62f3ff!important;outline-offset:3px;box-shadow:0 0 0 4px rgba(98,243,255,.12)}
+button,a{ -webkit-tap-highlight-color:rgba(98,243,255,.16)}
+@keyframes adminNebulaA{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(8vw,5vh,0) scale(1.12)}}
+@keyframes adminNebulaB{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-7vw,-6vh,0) scale(1.15)}}
+@keyframes adminCardBreathe{0%,100%{box-shadow:0 12px 38px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.035)}50%{box-shadow:0 12px 38px rgba(0,0,0,.22),0 0 18px rgba(98,243,255,.035),inset 0 1px rgba(255,255,255,.04)}}
+@keyframes adminButtonIdle{0%,100%{box-shadow:0 0 0 rgba(98,243,255,0)}50%{box-shadow:0 0 15px rgba(98,243,255,.075)}}
+@keyframes adminButtonSweep{0%,72%,100%{transform:translateX(-125%)}84%{transform:translateX(125%)}}
+@media(max-width:760px){
+  .app{width:min(100% - 18px,1180px)}
+  .card,.login-card{border-radius:15px}
+  .brand h1{font-size:clamp(18px,5vw,22px)}
+  .card-head h2{font-size:18px}
+  .btn{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  body::before,body::after{display:none}
+}
+
 </style>
 </head>
 <body>
