@@ -329,7 +329,15 @@ async function checkHealth(){
 async function openDashboard(){
   $('loginView').classList.add('hidden');
   $('dashboard').classList.add('ready');
-  await Promise.all([loadPricing(),loadCustomers(),checkHealth(),loadStorageStats()]);
+  const results=await Promise.allSettled([
+    loadPricing().catch(e=>{setStatus('pricingStatus','Gagal memuat pengaturan: '+e.message,'err');throw e}),
+    loadCustomers().catch(e=>{setStatus('customerStatus','Gagal memuat customer: '+e.message,'err');throw e}),
+    checkHealth(),
+    loadStorageStats()
+  ]);
+  const failed=results.filter(r=>r.status==='rejected').length;
+  if(failed)setStatus('systemStatus','Dashboard terbuka, tetapi '+failed+' bagian gagal dimuat. Periksa status masing-masing dan coba Muat Ulang.','err');
+  else setStatus('systemStatus','Dashboard dan data yang tersedia berhasil dimuat.','ok');
 }
 let loginInProgress=false;
 async function submitAdminLogin(){
