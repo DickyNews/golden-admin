@@ -331,13 +331,20 @@ async function openDashboard(){
   $('dashboard').classList.add('ready');
   await Promise.all([loadPricing(),loadCustomers(),checkHealth(),loadStorageStats()]);
 }
-$('login').onclick=async()=>{
+let loginInProgress=false;
+async function submitAdminLogin(){
+  if(loginInProgress)return;
+  loginInProgress=true;
+  const button=$('login');button.disabled=true;
   try{
     setStatus('loginStatus','Memverifikasi akun admin...');
     await api('/admin/login',{method:'POST',body:JSON.stringify({username:$('username').value.trim(),password:$('password').value})});
     await openDashboard();
   }catch(e){setStatus('loginStatus',e.message,'err')}
-};
+  finally{loginInProgress=false;button.disabled=false}
+}
+$('login').onclick=submitAdminLogin;
+['username','password'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submitAdminLogin()}}));
 $('logout').onclick=async()=>{
   try{await api('/admin/logout',{method:'POST'})}catch{}
   location.reload();
