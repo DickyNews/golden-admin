@@ -77,6 +77,11 @@ input:focus,select:focus{border-color:var(--yellow)}
  .customer-actions button{width:100%}
  .topbar-inner{align-items:flex-start}.brand h1{font-size:20px}
 }
+/* Accessibility: visible keyboard focus and reduced-motion support */
+:where(button,a,input,textarea,select,[tabindex]):focus-visible{outline:2px solid #f7c948;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
 </style>
 </head>
 <body>
@@ -410,7 +415,7 @@ async function loadCustomerHistory(){
     const status=String(j.status||'unknown').toLowerCase();
     const active=['queued','running','processing','pending','waiting','submitted','starting','in_progress','cancelling','cancel_requested'].includes(status);
     const bytes=Number(j.input_size_bytes||0)+Number(j.output_size_bytes||0);
-    return '<article class="customer-card"><div class="history-row"><div><div class="history-title">Job #'+esc(j.id)+' · '+esc(j.service_code||j.service_name||'Layanan')+' · '+esc(status.toUpperCase())+'</div><div class="history-meta">Input: '+esc(j.original_filename||j.input_path||'—')+' · '+formatBytes(j.input_size_bytes)+' | Output: '+formatBytes(j.output_size_bytes)+' | Total: '+formatBytes(bytes)+'</div><div class="history-meta">Dibuat: '+esc(j.created_at||'—')+'</div></div><button class="btn danger delete-one" data-job-id="'+esc(j.id)+'" '+(active?'disabled title="Job aktif tidak boleh dihapus"':'')+'>Hapus Riwayat & File</button></div></article>';
+    return '<article class="customer-card"><div class="history-row"><div><div class="history-title">Job #'+esc(j.id)+' · '+esc(j.service_code||j.service_name||'Layanan')+' · '+esc(status.toUpperCase())+'</div><div class="history-meta">Input: '+esc(j.original_filename||'Nama file tidak tersedia')+' · '+formatBytes(j.input_size_bytes)+' | Output: '+formatBytes(j.output_size_bytes)+' | Total: '+formatBytes(bytes)+'</div><div class="history-meta">Dibuat: '+esc(j.created_at||'—')+'</div></div><button class="btn danger delete-one" data-job-id="'+esc(j.id)+'" '+(active?'disabled title="Job aktif tidak boleh dihapus"':'')+'>Hapus Riwayat & File</button></div></article>';
   }).join('');
   return hasActiveJobs;
 }
