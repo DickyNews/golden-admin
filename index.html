@@ -63,6 +63,7 @@ input:focus,select:focus{border-color:var(--yellow)}
 .api-row{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
 .api-row:last-child{border-bottom:0}.api-row span:first-child{color:var(--muted)}
 .note{padding:12px;border:1px solid var(--line);border-radius:12px;color:var(--muted);font-size:12px;line-height:1.55;background:#0c0c0c}
+.history-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}.history-row:last-child{border-bottom:0}.history-title{font-weight:800;overflow-wrap:anywhere}.history-meta{font-size:12px;color:var(--muted);margin-top:5px;overflow-wrap:anywhere}.history-row .btn{min-height:38px;padding:8px 11px}@media(max-width:760px){.history-row{grid-template-columns:1fr}.history-row .btn{width:100%}}
 #dashboard{display:none}
 #dashboard.ready{display:block}
 @media(max-width:760px){
@@ -169,6 +170,28 @@ input:focus,select:focus{border-color:var(--yellow)}
       <div id="customers" class="customer-list"><div class="note">Memuat daftar customer...</div></div>
     </section>
 
+    <section class="card" id="historyStorageCard">
+      <div class="card-head">
+        <div><h2>Riwayat & Storage</h2><p>Audit penggunaan file per customer dan kelola riwayat melalui backend.</p></div>
+        <button class="btn secondary" id="refreshStorage">Refresh Storage</button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><small>Total file queue</small><b id="storageQueueFiles">—</b></div>
+        <div class="stat"><small>Total file output</small><b id="storageOutputFiles">—</b></div>
+        <div class="stat"><small>Total storage terkelola</small><b id="storageTotal">—</b></div>
+      </div>
+      <div class="note" style="margin-top:12px">Panel ini memerlukan endpoint backend: <code>GET /admin/storage</code>, <code>GET /admin/customers/{id}/jobs</code>, dan endpoint DELETE yang memvalidasi status job serta menghapus file secara aman. Jika endpoint belum tersedia, panel akan menampilkan error API dan tidak menganggap tindakan berhasil.</div>
+      <div class="grid" style="margin-top:16px">
+        <div class="field full"><label>Pilih customer untuk melihat riwayat</label><select id="historyCustomer"><option value="">Pilih customer…</option></select></div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="loadCustomerHistory">Muat Riwayat</button>
+        <button class="btn danger" id="deleteCustomerHistory">Hapus Semua Riwayat Customer</button>
+      </div>
+      <div class="status" id="storageStatus"></div>
+      <div id="customerHistory" class="customer-list"><div class="note">Pilih customer, lalu tekan Muat Riwayat.</div></div>
+    </section>
+
     <section class="card">
       <div class="card-head">
         <div><h2>Batasan arsitektur</h2><p>Admin Web tidak menyimpan atau menjalankan Golden Engine.</p></div>
@@ -237,6 +260,7 @@ async function loadCustomers(){
   const d=await api('/admin/customers');
   customersCache=getList(d);
   renderCustomers();
+  renderHistoryCustomers();
   setStatus('customerStatus',customersCache.length+' customer terbaca dari API.','ok');
 }
 function renderCustomers(){
@@ -296,7 +320,7 @@ async function checkHealth(){
 async function openDashboard(){
   $('loginView').classList.add('hidden');
   $('dashboard').classList.add('ready');
-  await Promise.all([loadPricing(),loadCustomers(),checkHealth()]);
+  await Promise.all([loadPricing(),loadCustomers(),checkHealth(),loadStorageStats()]);
 }
 $('login').onclick=async()=>{
   try{
@@ -327,7 +351,7 @@ $('serviceSelect').onchange=()=>{selectedServiceCode=$('serviceSelect').value;lo
 $('refreshPricing').onclick=()=>loadPricing().catch(e=>setStatus('pricingStatus',e.message,'err'));
 $('refreshCustomers').onclick=()=>loadCustomers().catch(e=>setStatus('customerStatus',e.message,'err'));
 $('refreshAll').onclick=async()=>{
-  try{await Promise.all([loadPricing(),loadCustomers(),checkHealth()]);setStatus('systemStatus','Semua data berhasil diperbarui.','ok')}
+  try{await Promise.all([loadPricing(),loadCustomers(),checkHealth(),loadStorageStats()]);setStatus('systemStatus','Semua data berhasil diperbarui.','ok')}
   catch(e){setStatus('systemStatus',e.message,'err')}
 };
 $('createCustomer').onclick=async()=>{
@@ -343,6 +367,71 @@ $('createCustomer').onclick=async()=>{
 };
 $('customerSearch').oninput=renderCustomers;
 $('clearSearch').onclick=()=>{$('customerSearch').value='';renderCustomers()};
+function formatBytes(value){
+  const n=Number(value);
+  if(!Number.isFinite(n)||n<0)return '—';
+  if(n===0)return '0 B';
+  const units=['B','KB','MB','GB','TB'];const i=Math.min(Math.floor(Math.log(n)/Math.log(1024)),units.length-1);
+  return (n/Math.pow(1024,i)).toFixed(i===0?0:2)+' '+units[i];
+}
+function renderHistoryCustomers(){
+  const sel=$('historyCustomer');if(!sel)return;
+  const previous=sel.value;
+  sel.innerHTML='<option value="">Pilih customer…</option>'+customersCache.map(c=>'<option value="'+esc(customerId(c))+'">'+esc(customerName(c)+' (ID '+customerId(c)+')')+'</option>').join('');
+  if(customersCache.some(c=>String(customerId(c))===previous))sel.value=previous;
+}
+async function loadStorageStats(){
+  try{
+    const d=await api('/admin/storage');
+    $('storageQueueFiles').textContent=d.queue_file_count??d.queue_files??'—';
+    $('storageOutputFiles').textContent=d.output_file_count??d.output_files??'—';
+    $('storageTotal').textContent=formatBytes(d.total_bytes??d.total_size_bytes??(Number(d.queue_bytes||0)+Number(d.output_bytes||0)));
+    setStatus('storageStatus','Statistik storage berhasil dimuat.','ok');
+  }catch(e){
+    $('storageQueueFiles').textContent='—';$('storageOutputFiles').textContent='—';$('storageTotal').textContent='—';
+    setStatus('storageStatus','Statistik storage belum tersedia: '+e.message,'err');
+  }
+}
+async function loadCustomerHistory(){
+  const id=$('historyCustomer').value;
+  if(!id)throw new Error('Pilih customer terlebih dahulu.');
+  const d=await api('/admin/customers/'+encodeURIComponent(id)+'/jobs');
+  const jobs=Array.isArray(d)?d:(Array.isArray(d.jobs)?d.jobs:(Array.isArray(d.items)?d.items:[]));
+  if(!jobs.length){$('customerHistory').innerHTML='<div class="note">Tidak ada riwayat job untuk customer ini.</div>';return;}
+  $('customerHistory').innerHTML=jobs.map(j=>{
+    const status=String(j.status||'unknown').toLowerCase();
+    const active=['queued','running','processing','pending'].includes(status);
+    const bytes=Number(j.input_size_bytes||0)+Number(j.output_size_bytes||0);
+    return '<article class="customer-card"><div class="history-row"><div><div class="history-title">Job #'+esc(j.id)+' · '+esc(j.service_code||j.service_name||'Layanan')+' · '+esc(status.toUpperCase())+'</div><div class="history-meta">Input: '+esc(j.original_filename||j.input_path||'—')+' · '+formatBytes(j.input_size_bytes)+' | Output: '+formatBytes(j.output_size_bytes)+' | Total: '+formatBytes(bytes)+'</div><div class="history-meta">Dibuat: '+esc(j.created_at||'—')+'</div></div><button class="btn danger delete-one" data-job-id="'+esc(j.id)+'" '+(active?'disabled title="Job aktif tidak boleh dihapus"':'')+'>Hapus Riwayat & File</button></div></article>';
+  }).join('');
+}
+$('refreshStorage').onclick=()=>loadStorageStats();
+$('loadCustomerHistory').onclick=async()=>{
+  try{setStatus('storageStatus','Memuat riwayat customer…');await loadCustomerHistory();setStatus('storageStatus','Riwayat berhasil dimuat.','ok')}
+  catch(e){setStatus('storageStatus','Riwayat belum tersedia: '+e.message,'err')}
+};
+$('deleteCustomerHistory').onclick=async()=>{
+  const id=$('historyCustomer').value;
+  if(!id){setStatus('storageStatus','Pilih customer terlebih dahulu.','err');return}
+  const c=customersCache.find(x=>String(customerId(x))===String(id));
+  if(!confirm('Hapus semua riwayat dan file yang aman dihapus untuk '+customerName(c||{})+' (ID '+id+')? Job aktif/queued wajib ditolak oleh backend. Tindakan ini tidak dapat dibatalkan.'))return;
+  try{
+    await api('/admin/customers/'+encodeURIComponent(id)+'/jobs',{method:'DELETE',body:JSON.stringify({confirm:true})});
+    setStatus('storageStatus','Permintaan penghapusan diterima backend. Memuat ulang data…','ok');
+    await Promise.all([loadCustomerHistory(),loadStorageStats()]);
+  }catch(e){setStatus('storageStatus','Penghapusan tidak dilakukan / gagal: '+e.message,'err')}
+};
+$('customerHistory').addEventListener('click',async e=>{
+  const btn=e.target.closest('.delete-one');if(!btn||btn.disabled)return;
+  const id=$('historyCustomer').value,jobId=btn.dataset.jobId;
+  if(!confirm('Hapus riwayat dan file untuk Job #'+jobId+'? Job queued/running wajib ditolak backend.'))return;
+  btn.disabled=true;
+  try{
+    await api('/admin/customers/'+encodeURIComponent(id)+'/jobs/'+encodeURIComponent(jobId),{method:'DELETE',body:JSON.stringify({confirm:true})});
+    setStatus('storageStatus','Job #'+jobId+' berhasil dihapus oleh backend.','ok');
+    await Promise.all([loadCustomerHistory(),loadStorageStats()]);
+  }catch(e){setStatus('storageStatus','Penghapusan Job #'+jobId+' gagal: '+e.message,'err');btn.disabled=false}
+});
 $('customers').addEventListener('click',async e=>{
   const card=e.target.closest('.customer-card');if(!card)return;
   try{
