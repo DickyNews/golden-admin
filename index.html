@@ -510,8 +510,10 @@ async function checkHealth(){
   }
 }
 async function openDashboard(){
-  $('loginView').classList.add('hidden');
+  // Clear the inline hidden state set during startup logout before showing the dashboard.
+  $('dashboard').style.display='';
   $('dashboard').classList.add('ready');
+  $('loginView').classList.add('hidden');
   const results=await Promise.allSettled([
     loadPricing().catch(e=>{setStatus('pricingStatus','Gagal memuat pengaturan: '+e.message,'err');throw e}),
     loadCustomers().catch(e=>{setStatus('customerStatus','Gagal memuat customer: '+e.message,'err');throw e}),
