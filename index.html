@@ -661,9 +661,20 @@ $('customers').addEventListener('click',async e=>{
   finally{document.querySelectorAll('.customer-card button').forEach(b=>b.disabled=false)}
 });
 
-checkHealth();
-// Restore the admin dashboard only when the API confirms an existing session.
-(async()=>{try{await api('/admin/me');await openDashboard()}catch(e){/* No valid session: keep the login screen visible. */}})();
+// SECURITY: every fresh page load must start logged out.
+// Invalidate any prior server-side admin session; never auto-restore the dashboard.
+$('dashboard').classList.remove('ready');
+$('dashboard').style.display='none';
+$('loginView').classList.remove('hidden');
+(async()=>{
+  try{
+    await api('/admin/logout',{method:'POST'});
+    setStatus('loginStatus','Sesi sebelumnya telah diakhiri. Silakan login untuk melanjutkan.','info');
+  }catch(e){
+    // Keep the dashboard hidden even if logout could not be confirmed.
+    setStatus('loginStatus','Halaman tetap terkunci. Namun sesi server lama belum dapat dikonfirmasi berakhir: '+e.message,'err');
+  }
+})();
 </script>
 </body>
 </html>
