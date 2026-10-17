@@ -483,12 +483,32 @@ async function adjustCard(card){
 }
 async function generateCard(card){
   const id=card.dataset.id;
-  const d=await api('/admin/customers/'+encodeURIComponent(id)+'/keys',{method:'POST',body:JSON.stringify({})});
-  const key=d.key||d.customer_key||d.token||d.access_key||'';
-  const box=card.querySelector('.result-key');
-  box.classList.remove('hidden');
-  box.innerHTML='<b>KEY:</b> '+esc(key||JSON.stringify(d));
-  setStatus('customerStatus','Key berhasil dibuat untuk customer ID '+id+'.','ok');
+  const button=card.querySelector('.key');
+  const previousLabel=button.textContent;
+  button.textContent='Memuat Key...';
+  try{
+    const d=await api('/admin/customers/'+encodeURIComponent(id)+'/keys',{method:'POST',body:JSON.stringify({})});
+    const key=d.key||d.customer_key||d.token||d.access_key||'';
+    if(!key)throw new Error('API tidak mengembalikan key. Key tidak ditampilkan.');
+    const box=card.querySelector('.result-key');
+    box.classList.remove('hidden');
+    box.innerHTML='<b>KEY:</b> '+esc(key)+'<div style="margin-top:10px"><button type="button" class="btn secondary copy-key">Salin Key</button></div>';
+    box.querySelector('.copy-key').onclick=async()=>{
+      try{
+        await navigator.clipboard.writeText(key);
+        setStatus('customerStatus','Key customer ID '+id+' berhasil disalin.','ok');
+      }catch{
+        setStatus('customerStatus','Gagal menyalin otomatis. Pilih dan salin key yang tampil.','err');
+      }
+    };
+    const reused=d.created===false;
+    setStatus('customerStatus',reused
+      ?'Key aktif yang sama ditampilkan kembali untuk customer ID '+id+'. Tidak dibuat key baru.'
+      :'Key baru berhasil dibuat untuk customer ID '+id+'. Simpan dengan aman.',
+      'ok');
+  }finally{
+    button.textContent=previousLabel;
+  }
 }
 async function checkHealth(){
   const checks=await Promise.allSettled([
