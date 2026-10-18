@@ -468,6 +468,7 @@ function renderCustomers(){
       '<input class="desc" placeholder="Keterangan perubahan saldo">'+
       '<button class="btn primary adjust">Simpan COIN</button>'+
       '<button class="btn secondary key">Generate Key</button>'+
+      '<button class="btn danger delete-customer">Hapus Customer</button>'+
       '</div><div class="key-box result-key hidden"></div></article>';
   }).join('');
 }
@@ -676,11 +677,27 @@ $('customerHistory').addEventListener('click',async e=>{
 });
 $('customers').addEventListener('click',async e=>{
   const card=e.target.closest('.customer-card');if(!card)return;
+  const deleteButton=e.target.closest('.delete-customer');
   try{
+    if(deleteButton){
+      const id=card.dataset.id;
+      const c=customersCache.find(x=>String(customerId(x))===String(id));
+      if(!confirm('HAPUS PERMANEN customer '+customerName(c||{})+' (ID '+id+') beserta seluruh riwayat job, transaksi COIN, sesi, API key, dan file input/output yang tervalidasi? Tindakan ini tidak dapat dibatalkan. Job aktif akan ditolak backend.'))return;
+      if(!confirm('Konfirmasi terakhir: data customer ID '+id+' akan dihapus permanen dari database. Lanjutkan?'))return;
+      deleteButton.disabled=true;deleteButton.textContent='Menghapus...';
+      const d=await api('/admin/customers/'+encodeURIComponent(id),{method:'DELETE'});
+      await Promise.all([loadCustomers(),loadStorageStats()]);
+      const detail=d.partial_cleanup
+        ?'Customer dan data database dihapus, tetapi sebagian file gagal dibersihkan. Periksa log/server.'
+        :'Customer, riwayat, transaksi, sesi, API key, dan file terkait yang tervalidasi telah diproses backend.';
+      setStatus('customerStatus',detail,'ok');
+      setStatus('storageStatus',detail,d.partial_cleanup?'err':'ok');
+      return;
+    }
     if(e.target.closest('.adjust')){e.target.disabled=true;await adjustCard(card)}
     if(e.target.closest('.key')){e.target.disabled=true;await generateCard(card)}
-  }catch(err){setStatus('customerStatus',err.message,'err')}
-  finally{document.querySelectorAll('.customer-card button').forEach(b=>b.disabled=false)}
+  }catch(err){setStatus('customerStatus','Gagal menghapus/mengubah customer: '+err.message,'err')}
+  finally{document.querySelectorAll('.customer-card button').forEach(b=>{if(!b.classList.contains('delete-customer')||b.textContent!=='Menghapus...')b.disabled=false})}
 });
 
 // SECURITY: every fresh page load must start logged out.
