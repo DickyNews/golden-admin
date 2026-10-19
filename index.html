@@ -463,6 +463,8 @@ function renderCustomers(){
     const id=customerId(c), name=customerName(c), bal=customerBalance(c);
     return '<article class="customer-card" data-id="'+esc(id)+'">'+
       '<div class="customer-main"><div><div class="customer-name">'+esc(name)+'</div><div class="customer-meta">ID: '+esc(id)+'</div></div><div class="coin">'+esc(bal)+' COIN</div></div>'+
+      '<div class="customer-actions"><input class="username-edit" value="'+esc(name)+'" maxlength="100" placeholder="Username customer"><button class="btn secondary save-username">Simpan Username</button></div>'+
+      '<div class="customer-actions">'+
       '<div class="customer-actions">'+
       '<input class="adj" type="number" step="1" value="0" placeholder="+ / - COIN">'+
       '<input class="desc" placeholder="Keterangan perubahan saldo">'+
@@ -695,6 +697,7 @@ $('customers').addEventListener('click',async e=>{
       return;
     }
     if(e.target.closest('.adjust')){e.target.disabled=true;await adjustCard(card)}
+    if(e.target.closest('.save-username')){const input=card.querySelector('.username-edit');const username=input.value.trim();if(username.length<2)throw new Error('Username minimal 2 karakter');await api('/admin/customers/'+encodeURIComponent(card.dataset.id)+'/username',{method:'PUT',body:JSON.stringify({username})});setStatus('customerStatus','Username berhasil diperbarui. Key tetap terikat ke customer ID '+card.dataset.id+'.','ok');await loadCustomers()}
     if(e.target.closest('.key')){e.target.disabled=true;await generateCard(card)}
   }catch(err){setStatus('customerStatus','Gagal menghapus/mengubah customer: '+err.message,'err')}
   finally{document.querySelectorAll('.customer-card button').forEach(b=>{if(!b.classList.contains('delete-customer')||b.textContent!=='Menghapus...')b.disabled=false})}
