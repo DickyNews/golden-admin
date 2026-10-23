@@ -315,6 +315,42 @@ input:focus,select:focus,textarea:focus{
   </div>
 
   <main class="app">
+    <div class="actions" style="margin-bottom:14px"><a class="btn primary" href="#serverMonitor">Monitor Server Realtime</a><a class="btn secondary" href="#serverSettings">Pengaturan Server</a></div>
+    <section class="card" id="serverMonitor">
+      <div class="card-head"><div><h2>Kontrol Server Realtime</h2><p>Metrik langsung dari VPS; pembaruan otomatis sesuai interval pengaturan.</p></div><span class="badge" id="serverLiveBadge">MENUNGGU DATA</span></div>
+      <div class="server-grid">
+        <div class="metric"><div class="metric-top"><span>CPU</span><span id="cpuText">—</span></div><div class="metric-value" id="cpuValue">—</div><div class="track"><span id="cpuBar"></span></div><div class="metric-foot" id="cpuFoot">Core dan load average</div></div>
+        <div class="metric"><div class="metric-top"><span>RAM</span><span id="ramText">—</span></div><div class="metric-value" id="ramValue">—</div><div class="track"><span id="ramBar"></span></div><div class="metric-foot" id="ramFoot">Terpakai / total</div></div>
+        <div class="metric"><div class="metric-top"><span>Storage root</span><span id="diskText">—</span></div><div class="metric-value" id="diskValue">—</div><div class="track"><span id="diskBar"></span></div><div class="metric-foot" id="diskFoot">Terpakai / total</div></div>
+        <div class="metric"><div class="metric-top"><span>Uptime</span><span>SERVER</span></div><div class="metric-value" id="uptimeValue">—</div><div class="metric-foot" id="uptimeFoot">Sejak boot terakhir</div></div>
+        <div class="metric"><div class="metric-top"><span>Database</span><span>POSTGRESQL</span></div><div class="metric-value" id="dbValue">—</div><div class="metric-foot">Koneksi database live</div></div>
+        <div class="metric"><div class="metric-top"><span>Jaringan</span><span id="netInterfaces">—</span></div><div class="metric-value" id="netValue">—</div><div class="metric-foot" id="netFoot">Akumulasi RX / TX</div></div>
+      </div>
+      <div class="card-head" style="margin-top:22px"><div><h2>Spesifikasi & kondisi host</h2><p>Informasi sistem aktual yang dilaporkan VPS.</p></div></div>
+      <div class="server-info">
+        <div class="api-row"><span>Hostname</span><b id="hostName">—</b></div><div class="api-row"><span>CPU core / thread</span><b id="hostCores">—</b></div>
+        <div class="api-row"><span>Sistem operasi</span><b id="hostOS">—</b></div><div class="api-row"><span>Kernel</span><b id="hostKernel">—</b></div>
+        <div class="api-row"><span>Python API</span><b id="hostPython">—</b></div><div class="api-row"><span>Load average (1/5/15m)</span><b id="hostLoad">—</b></div>
+        <div class="api-row"><span>RAM tersedia</span><b id="ramAvailable">—</b></div><div class="api-row"><span>Disk kosong</span><b id="diskFree">—</b></div>
+      </div>
+      <div class="card-head" style="margin-top:22px"><div><h2>Status layanan & keamanan</h2><p>API, worker, database, HTTPS, SSH dan proteksi host.</p></div></div>
+      <div class="service-grid" id="serverServices"><div class="note">Memuat status layanan…</div></div>
+      <div class="server-alert hidden" id="serverAlerts"></div><div class="status" id="serverUpdated">Belum diperbarui.</div>
+    </section>
+    <section class="card" id="serverSettings">
+      <div class="card-head"><div><h2>Pengaturan monitoring server</h2><p>Ubah interval pembaruan dan ambang peringatan. Disimpan di server.</p></div><span class="badge" id="settingsSavedBadge">PENGATURAN</span></div>
+      <div class="settings-grid">
+        <div class="field"><label>Interval refresh</label><select id="serverRefreshSeconds"><option value="5">5 detik</option><option value="10">10 detik</option><option value="15">15 detik</option><option value="30">30 detik</option><option value="60">60 detik</option></select></div>
+        <div class="field"><label>Peringatan CPU (%)</label><input id="cpuWarning" type="number" min="50" max="99" step="1"></div>
+        <div class="field"><label>Peringatan RAM (%)</label><input id="ramWarning" type="number" min="50" max="99" step="1"></div>
+        <div class="field"><label>Peringatan storage (%)</label><input id="diskWarning" type="number" min="50" max="99" step="1"></div>
+      </div>
+      <div class="actions"><button class="btn primary" id="saveServerSettings">Simpan Pengaturan Monitoring</button><button class="btn secondary" id="refreshServerNow">Refresh Server Sekarang</button></div>
+      <div class="status" id="serverSettingsStatus"></div>
+      <div class="note" style="margin-top:12px">Tombol Segarkan Semua memperbarui status server, setting layanan, customer, koneksi API, storage, dan pengaturan pada halaman tanpa tombol refresh browser. Pengaturan monitoring tidak mengubah algoritma mesin atau video dan tidak me-restart layanan.</div>
+    </section>
+
+
     <section class="card">
       <div class="card-head">
         <div><h2>Ringkasan sistem</h2><p>Status dasar yang sedang terbaca dari backend.</p></div>
@@ -411,40 +447,6 @@ input:focus,select:focus,textarea:focus{
       </div>
     </section>
   
-    <section class="card" id="serverMonitor">
-      <div class="card-head"><div><h2>Kontrol Server Realtime</h2><p>Metrik langsung dari VPS; pembaruan otomatis sesuai interval pengaturan.</p></div><span class="badge" id="serverLiveBadge">MENUNGGU DATA</span></div>
-      <div class="server-grid">
-        <div class="metric"><div class="metric-top"><span>CPU</span><span id="cpuText">—</span></div><div class="metric-value" id="cpuValue">—</div><div class="track"><span id="cpuBar"></span></div><div class="metric-foot" id="cpuFoot">Core dan load average</div></div>
-        <div class="metric"><div class="metric-top"><span>RAM</span><span id="ramText">—</span></div><div class="metric-value" id="ramValue">—</div><div class="track"><span id="ramBar"></span></div><div class="metric-foot" id="ramFoot">Terpakai / total</div></div>
-        <div class="metric"><div class="metric-top"><span>Storage root</span><span id="diskText">—</span></div><div class="metric-value" id="diskValue">—</div><div class="track"><span id="diskBar"></span></div><div class="metric-foot" id="diskFoot">Terpakai / total</div></div>
-        <div class="metric"><div class="metric-top"><span>Uptime</span><span>SERVER</span></div><div class="metric-value" id="uptimeValue">—</div><div class="metric-foot" id="uptimeFoot">Sejak boot terakhir</div></div>
-        <div class="metric"><div class="metric-top"><span>Database</span><span>POSTGRESQL</span></div><div class="metric-value" id="dbValue">—</div><div class="metric-foot">Koneksi database live</div></div>
-        <div class="metric"><div class="metric-top"><span>Jaringan</span><span id="netInterfaces">—</span></div><div class="metric-value" id="netValue">—</div><div class="metric-foot" id="netFoot">Akumulasi RX / TX</div></div>
-      </div>
-      <div class="card-head" style="margin-top:22px"><div><h2>Spesifikasi & kondisi host</h2><p>Informasi sistem aktual yang dilaporkan VPS.</p></div></div>
-      <div class="server-info">
-        <div class="api-row"><span>Hostname</span><b id="hostName">—</b></div><div class="api-row"><span>CPU core / thread</span><b id="hostCores">—</b></div>
-        <div class="api-row"><span>Sistem operasi</span><b id="hostOS">—</b></div><div class="api-row"><span>Kernel</span><b id="hostKernel">—</b></div>
-        <div class="api-row"><span>Python API</span><b id="hostPython">—</b></div><div class="api-row"><span>Load average (1/5/15m)</span><b id="hostLoad">—</b></div>
-        <div class="api-row"><span>RAM tersedia</span><b id="ramAvailable">—</b></div><div class="api-row"><span>Disk kosong</span><b id="diskFree">—</b></div>
-      </div>
-      <div class="card-head" style="margin-top:22px"><div><h2>Status layanan & keamanan</h2><p>API, worker, database, HTTPS, SSH dan proteksi host.</p></div></div>
-      <div class="service-grid" id="serverServices"><div class="note">Memuat status layanan…</div></div>
-      <div class="server-alert hidden" id="serverAlerts"></div><div class="status" id="serverUpdated">Belum diperbarui.</div>
-    </section>
-    <section class="card" id="serverSettings">
-      <div class="card-head"><div><h2>Pengaturan monitoring server</h2><p>Ubah interval pembaruan dan ambang peringatan. Disimpan di server.</p></div><span class="badge" id="settingsSavedBadge">PENGATURAN</span></div>
-      <div class="settings-grid">
-        <div class="field"><label>Interval refresh</label><select id="serverRefreshSeconds"><option value="5">5 detik</option><option value="10">10 detik</option><option value="15">15 detik</option><option value="30">30 detik</option><option value="60">60 detik</option></select></div>
-        <div class="field"><label>Peringatan CPU (%)</label><input id="cpuWarning" type="number" min="50" max="99" step="1"></div>
-        <div class="field"><label>Peringatan RAM (%)</label><input id="ramWarning" type="number" min="50" max="99" step="1"></div>
-        <div class="field"><label>Peringatan storage (%)</label><input id="diskWarning" type="number" min="50" max="99" step="1"></div>
-      </div>
-      <div class="actions"><button class="btn primary" id="saveServerSettings">Simpan Pengaturan Monitoring</button><button class="btn secondary" id="refreshServerNow">Refresh Server Sekarang</button></div>
-      <div class="status" id="serverSettingsStatus"></div>
-      <div class="note" style="margin-top:12px">Tombol Segarkan Semua memperbarui status server, setting layanan, customer, koneksi API, storage, dan pengaturan pada halaman tanpa tombol refresh browser. Pengaturan monitoring tidak mengubah algoritma mesin atau video dan tidak me-restart layanan.</div>
-    </section>
-
 </main>
 </div>
 
