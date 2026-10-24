@@ -301,7 +301,7 @@ body::before,body::after{display:none!important}
 .app>.grid{display:contents}
 .app>section.card{margin:0;min-width:0;padding:16px;border-radius:14px;box-shadow:none;animation:none}
 .app>section.card:hover{transform:none;box-shadow:none}
-#serverMonitor,#customers,#historyStorageCard,.app>section.card:last-child{grid-column:1/-1}
+#serverMonitor,#customersPanel,#historyStorageCard,.app>section.card:last-child{grid-column:1/-1}
 .topbar{position:sticky;top:0;margin:0;padding:10px 14px;background:rgba(8,9,13,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:none}
 .topbar-inner{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px 14px;align-items:center}
 .brand h1{font-size:20px;letter-spacing:-.03em;text-shadow:none}
@@ -361,7 +361,7 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
 }
 @media(max-width:760px){
   .app{width:calc(100% - 18px);padding:9px 0 22px;grid-template-columns:minmax(0,1fr);gap:10px}
-  .app>section.card,#serverMonitor,#customers,#historyStorageCard,.app>section.card:last-child{grid-column:1}
+  .app>section.card,#serverMonitor,#customersPanel,#historyStorageCard,.app>section.card:last-child{grid-column:1}
   .topbar{padding:9px}
   .topbar-inner{grid-template-columns:minmax(0,1fr) auto;gap:9px}
   .brand h1{font-size:18px}
@@ -495,7 +495,7 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
       </section>
     </div>
 
-    <section class="card">
+    <section class="card" id="customersPanel">
       <div class="card-head">
         <div><h2>Customer & COIN</h2><p>Buat akun customer, ubah saldo COIN, dan generate key akses.</p></div>
       </div>
