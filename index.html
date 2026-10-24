@@ -286,6 +286,106 @@ input:focus,select:focus,textarea:focus{
 @media(max-width:760px){.server-grid{grid-template-columns:1fr 1fr}.server-info,.service-grid{grid-template-columns:1fr}.settings-grid{grid-template-columns:1fr 1fr}.metric-value{font-size:20px}}
 @media(max-width:430px){.server-grid,.settings-grid{grid-template-columns:1fr}.server-info .api-row span:last-child{max-width:60%}}
 
+/* Minimal admin layout: compact columns, clean rows, and one global refresh control. */
+:root{
+  --bg:#08090d;--panel:#12131b;--panel2:#191a24;--line:rgba(255,255,255,.12);
+  --line2:rgba(37,244,238,.3);--text:#fff;--muted:#a8a8b3;
+}
+html{scroll-behavior:auto}
+body{background:#08090d}
+body::before,body::after{display:none!important}
+.app{
+  width:min(1440px,calc(100% - 28px));margin:0 auto;padding:12px 0 28px;
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start;
+}
+.app>.grid{display:contents}
+.app>section.card{margin:0;min-width:0;padding:16px;border-radius:14px;box-shadow:none;animation:none}
+.app>section.card:hover{transform:none;box-shadow:none}
+#serverMonitor,#customers,#historyStorageCard,.app>section.card:last-child{grid-column:1/-1}
+.topbar{position:sticky;top:0;margin:0;padding:10px 14px;background:rgba(8,9,13,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:none}
+.topbar-inner{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px 14px;align-items:center}
+.brand h1{font-size:20px;letter-spacing:-.03em;text-shadow:none}
+.brand p{margin-top:3px;font-size:12px}
+.top-actions{justify-content:flex-end;align-self:center}
+.refresh-master{grid-column:1/-1;width:100%;min-height:48px;border-radius:10px;font-size:14px;animation:none;box-shadow:none}
+.refresh-master::after{display:none}
+.btn{min-height:40px;padding:9px 12px;border-radius:9px;animation:none;box-shadow:none}
+.btn::after{display:none}
+.btn:hover{transform:none;box-shadow:none}
+.card-head{margin-bottom:12px;align-items:center}
+.card-head h2{font-size:16px;letter-spacing:-.02em}
+.card-head p{font-size:12px;margin-top:3px}
+.grid{gap:10px}
+.field label{font-size:12px;margin-bottom:5px}
+input,select{min-height:40px;padding:9px 10px;border-radius:9px}
+.actions{margin-top:11px;gap:7px}
+.status{margin-top:8px;font-size:12px}
+.stat-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{padding:10px;border-radius:10px}
+.stat b{font-size:16px}
+.server-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.metric{padding:10px;border-radius:10px}
+.metric-value{font-size:20px;margin:6px 0}
+.metric-foot{font-size:10px;line-height:1.4}
+.server-info{grid-template-columns:repeat(4,minmax(0,1fr));gap:0 14px}
+.server-info .api-row{padding:8px 0;font-size:12px}
+.service-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+.service-pill{padding:9px;border-radius:9px;min-width:0}
+.settings-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.customer-tools{margin-top:12px!important}
+.customer-list{gap:8px;margin-top:10px}
+#customers{max-height:500px;overflow:auto;padding-right:4px;overscroll-behavior:contain}
+.customer-card{padding:12px;border-radius:10px}
+.customer-main{align-items:center}
+.customer-name{font-size:14px}
+.customer-meta{font-size:11px}
+.coin{font-size:16px}
+.customer-actions{grid-template-columns:minmax(110px,.7fr) minmax(150px,1.1fr) repeat(3,max-content);gap:7px;margin-top:9px}
+.customer-actions .btn{white-space:nowrap}
+.key-box{margin-top:8px}
+.api-row{padding:8px 0;font-size:12px}
+.note{padding:10px;font-size:11px}
+#customerHistory{max-height:360px;overflow:auto;padding-right:3px;overscroll-behavior:contain}
+.history-row{padding:9px 0;gap:8px}
+.history-title{font-size:12px}
+.history-meta{font-size:11px}
+#serverSettings .note{margin-top:9px!important}
+#serverSettings .card-head[style],#serverMonitor .card-head[style]{margin-top:14px!important}
+#serverMonitor .server-alert{margin-top:8px}
+@media(max-width:1050px){
+  .server-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .server-info{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .service-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .customer-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .customer-actions .wide{grid-column:1/-1}
+}
+@media(max-width:760px){
+  .app{width:calc(100% - 18px);padding:9px 0 22px;grid-template-columns:minmax(0,1fr);gap:10px}
+  .app>section.card,#serverMonitor,#customers,#historyStorageCard,.app>section.card:last-child{grid-column:1}
+  .topbar{padding:9px}
+  .topbar-inner{grid-template-columns:minmax(0,1fr) auto;gap:9px}
+  .brand h1{font-size:18px}
+  .brand p{font-size:11px}
+  .top-actions{gap:6px}
+  .refresh-master{min-height:46px}
+  .server-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .server-info,.service-grid,.settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .customer-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .customer-actions .btn{width:100%;white-space:normal}
+  #customers{max-height:440px}
+}
+@media(max-width:400px){
+  .stat-grid{grid-template-columns:1fr}
+  .server-grid,.server-info,.service-grid,.settings-grid{grid-template-columns:1fr}
+  .topbar-inner{grid-template-columns:1fr}
+  .top-actions{justify-content:space-between}
+  .refresh-master{grid-column:1}
+  .customer-main{align-items:flex-start}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
 </style>
 </head>
 <body>
@@ -311,11 +411,11 @@ input:focus,select:focus,textarea:focus{
         <span class="badge ok" id="apiBadge">API ONLINE</span>
         <button class="btn secondary" id="logout">Keluar</button>
       </div>
+      <button class="btn primary refresh-master" id="refreshAll" type="button"><span aria-hidden="true">↻</span> Segarkan Semua Pengaturan & Data</button>
     </div>
   </div>
 
   <main class="app">
-    <div class="actions" style="margin-bottom:14px"><a class="btn primary" href="#serverMonitor">Monitor Server Realtime</a><a class="btn secondary" href="#serverSettings">Pengaturan Server</a></div>
     <section class="card" id="serverMonitor">
       <div class="card-head"><div><h2>Kontrol Server Realtime</h2><p>Metrik langsung dari VPS; pembaruan otomatis sesuai interval pengaturan.</p></div><span class="badge" id="serverLiveBadge">MENUNGGU DATA</span></div>
       <div class="server-grid">
@@ -345,7 +445,7 @@ input:focus,select:focus,textarea:focus{
         <div class="field"><label>Peringatan RAM (%)</label><input id="ramWarning" type="number" min="50" max="99" step="1"></div>
         <div class="field"><label>Peringatan storage (%)</label><input id="diskWarning" type="number" min="50" max="99" step="1"></div>
       </div>
-      <div class="actions"><button class="btn primary" id="saveServerSettings">Simpan Pengaturan Monitoring</button><button class="btn secondary" id="refreshServerNow">Refresh Server Sekarang</button></div>
+      <div class="actions"><button class="btn primary" id="saveServerSettings">Simpan Pengaturan Monitoring</button></div>
       <div class="status" id="serverSettingsStatus"></div>
       <div class="note" style="margin-top:12px">Tombol Segarkan Semua memperbarui status server, setting layanan, customer, koneksi API, storage, dan pengaturan pada halaman tanpa tombol refresh browser. Pengaturan monitoring tidak mengubah algoritma mesin atau video dan tidak me-restart layanan.</div>
     </section>
@@ -354,7 +454,6 @@ input:focus,select:focus,textarea:focus{
     <section class="card">
       <div class="card-head">
         <div><h2>Ringkasan sistem</h2><p>Status dasar yang sedang terbaca dari backend.</p></div>
-        <button class="btn secondary" id="refreshAll">Segarkan Semua</button>
       </div>
       <div class="stat-grid">
         <div class="stat"><small>Service</small><b id="statService">-</b></div>
@@ -376,7 +475,7 @@ input:focus,select:focus,textarea:focus{
           <div class="field"><label>Maksimum ukuran video (MB)</label><input id="maxMb" type="number" min="1" step="1"></div>
           <div class="field full"><label>Status layanan</label><select id="active"><option value="true">AKTIF</option><option value="false">NONAKTIF</option></select></div>
         </div>
-        <div class="actions"><button class="btn primary" id="save">Simpan Pengaturan</button><button class="btn secondary" id="refreshPricing">Refresh</button></div>
+        <div class="actions"><button class="btn primary" id="save">Simpan Pengaturan</button></div>
         <div class="status" id="pricingStatus"></div>
       </section>
 
@@ -399,7 +498,6 @@ input:focus,select:focus,textarea:focus{
     <section class="card">
       <div class="card-head">
         <div><h2>Customer & COIN</h2><p>Buat akun customer, ubah saldo COIN, dan generate key akses.</p></div>
-        <button class="btn secondary" id="refreshCustomers">Refresh Customer</button>
       </div>
 
       <div class="grid">
@@ -419,7 +517,6 @@ input:focus,select:focus,textarea:focus{
     <section class="card" id="historyStorageCard">
       <div class="card-head">
         <div><h2>Riwayat & Storage</h2><p>Audit penggunaan file per customer dan kelola riwayat melalui backend.</p></div>
-        <button class="btn secondary" id="refreshStorage">Refresh Storage</button>
       </div>
       <div class="stat-grid">
         <div class="stat"><small>Total file queue</small><b id="storageQueueFiles">—</b></div>
@@ -639,11 +736,38 @@ $('save').onclick=async()=>{
   }catch(e){setStatus('pricingStatus',e.message,'err')}
 };
 $('serviceSelect').onchange=()=>{selectedServiceCode=$('serviceSelect').value;loadPricing().catch(e=>setStatus('pricingStatus',e.message,'err'))};
-$('refreshPricing').onclick=()=>loadPricing().catch(e=>setStatus('pricingStatus',e.message,'err'));
-$('refreshCustomers').onclick=()=>loadCustomers().catch(e=>setStatus('customerStatus',e.message,'err'));
 $('refreshAll').onclick=async()=>{
-  try{await Promise.all([loadPricing(),loadCustomers(),checkHealth(),loadStorageStats(),loadServerSettings(),loadServerStatus()]);setStatus('systemStatus','Semua data berhasil diperbarui.','ok')}
-  catch(e){setStatus('systemStatus',e.message,'err')}
+  const button=$('refreshAll');
+  if(button.disabled)return;
+  const original=button.innerHTML;
+  button.disabled=true;
+  button.innerHTML='<span aria-hidden="true">↻</span> Memperbarui semua pengaturan dan data…';
+  setStatus('systemStatus','Mengambil data terbaru dari backend…','info');
+  try{
+    const results=await Promise.allSettled([
+      loadPricing(),
+      loadCustomers(),
+      checkHealth(),
+      loadStorageStats(),
+      (async()=>{await loadServerSettings();await loadServerStatus()})()
+    ]);
+    const rejected=results.filter(r=>r.status==='rejected').length;
+    const healthFailed=$('apiBadge').classList.contains('off')||$('healthBadge').classList.contains('off');
+    const storageFailed=$('storageStatus').classList.contains('err-text');
+    const serverFailed=$('serverLiveBadge').textContent==='ERROR';
+    const failed=rejected+(healthFailed?1:0)+(storageFailed?1:0)+(serverFailed?1:0);
+    if(failed){
+      setStatus('systemStatus','Pembaruan selesai dengan '+failed+' bagian bermasalah. Lihat status pada panel terkait; data yang gagal tidak dianggap berhasil.','err');
+    }else{
+      setStatus('systemStatus','Semua pengaturan dan data yang tersedia berhasil disegarkan dari backend.','ok');
+    }
+    $('apiBadge').title='Status koneksi diperbarui '+new Date().toLocaleTimeString('id-ID');
+  }catch(e){
+    setStatus('systemStatus','Pembaruan gagal: '+e.message,'err');
+  }finally{
+    button.disabled=false;
+    button.innerHTML=original;
+  }
 };
 $('createCustomer').onclick=async()=>{
   try{
@@ -701,7 +825,6 @@ async function loadCustomerHistory(){
   }).join('');
   return hasActiveJobs;
 }
-$('refreshStorage').onclick=()=>loadStorageStats();
 $('historyCustomer').addEventListener('change',()=>{
   $('deleteCustomerHistory').disabled=true;
   $('customerHistory').innerHTML='<div class="note">Customer berubah. Muat riwayat customer terpilih sebelum melakukan tindakan.</div>';
@@ -803,7 +926,6 @@ async function loadServerStatus(){
  $('serverAlerts').textContent=alerts.join(' · ');$('serverAlerts').classList.toggle('hidden',alerts.length===0);$('serverLiveBadge').textContent=alerts.length?'PERLU PERHATIAN':'SERVER ONLINE';$('serverLiveBadge').className='badge '+(alerts.length?'off':'ok');$('serverUpdated').textContent='Data terakhir: '+new Date(d.timestamp).toLocaleString('id-ID')+' · Auto-refresh setiap '+serverSettingsCache.refresh_seconds+' detik.';
 }
 $('saveServerSettings').onclick=async()=>{const data={refresh_seconds:Number($('serverRefreshSeconds').value),cpu_warning_percent:Number($('cpuWarning').value),ram_warning_percent:Number($('ramWarning').value),disk_warning_percent:Number($('diskWarning').value)};try{$('saveServerSettings').disabled=true;const d=await api('/admin/server/settings',{method:'PUT',body:JSON.stringify(data)});serverSettingsCache=d.settings;await loadServerSettings();await loadServerStatus();$('settingsSavedBadge').textContent='TERSIMPAN';$('settingsSavedBadge').className='badge ok';setStatus('serverSettingsStatus','Pengaturan tersimpan di server dan interval refresh diperbarui.','ok')}catch(e){setStatus('serverSettingsStatus','Gagal menyimpan: '+e.message,'err')}finally{$('saveServerSettings').disabled=false}};
-$('refreshServerNow').onclick=async()=>{try{await Promise.all([loadServerSettings(),loadServerStatus()]);setStatus('serverSettingsStatus','Status dan pengaturan server berhasil diperbarui.','ok')}catch(e){setStatus('serverSettingsStatus',e.message,'err')}};
 
 </script>
 </body>
