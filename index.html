@@ -6,7 +6,7 @@
 <title>Dicky News Golden Admin</title>
 <style>
   /* Compact, independently scrollable Free history: show about three records at once. */
-  #freeUsageHistory{max-height:660px;overflow-y:auto;overscroll-behavior:contain;padding-right:5px;scrollbar-gutter:stable}
+  #freeUsageHistory{height:520px;max-height:520px;overflow-y:auto;overscroll-behavior:contain;padding-right:5px;scrollbar-gutter:stable}
   #freeUsageHistory .customer-card{margin-bottom:10px}
   #freeUsageHistory .customer-card:last-child{margin-bottom:0}
 
@@ -941,7 +941,6 @@ async function loadFreeSettings(){
   const d=await api('/admin/free-inject/settings');
   $('freeMaxMb').value=Number(d.max_file_size_mb||50);
   $('freeUsageLimit').textContent=Number(d.max_file_size_mb||50)+' MB';
-  $('paidMaxMbSync').value=$('maxMb').value||'1024';
 }
 async function loadFreeUsageHistory(){
   const d=await api('/admin/free-inject/history?limit=100&offset=0');
