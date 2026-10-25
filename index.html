@@ -844,7 +844,7 @@ $('customerPackageFilter').onchange=renderCustomers;
 $('customerStatusFilter').onchange=renderCustomers;
 $('clearSearch').onclick=()=>{$('customerSearch').value='';$('customerPackageFilter').value='';$('customerStatusFilter').value='';renderCustomers()};
 $('customerSearch').oninput=renderCustomers;
-$('clearSearch').onclick=()=>{$('customerSearch').value='';renderCustomers()};
+$('clearSearch').onclick=()=>{$('customerSearch').value='';$('customerPackageFilter').value='';$('customerStatusFilter').value='';renderCustomers()};
 function formatBytes(value){
   const n=Number(value);
   if(!Number.isFinite(n)||n<0)return '—';
