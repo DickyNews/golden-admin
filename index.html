@@ -994,6 +994,7 @@ async function loadFreeUsageHistory(){
     '<div class="customer-meta">Ukuran file: '+esc(x.input_size_mb??0)+' MB · Status: '+esc(x.status||'unknown')+'</div>'+
     (x.progress_label?'<div class="customer-meta">Progres: '+esc(x.progress_label)+(x.progress_percent!=null?' ('+esc(x.progress_percent)+'%)':'')+'</div>':'')+
     (x.error?'<div class="status err-text">Keterangan error: '+esc(x.error)+'</div>':'')+
+    (x.location&&Number.isFinite(Number(x.location.latitude))&&Number.isFinite(Number(x.location.longitude))?'<div class="customer-meta">Lokasi dibagikan: '+esc(formatLocalDate(x.location.shared_at||''))+' · Akurasi ±'+esc(x.location.accuracy_m==null?'—':Math.round(Number(x.location.accuracy_m))+' m')+' · <a href="https://www.google.com/maps?q='+encodeURIComponent(Number(x.location.latitude)+','+Number(x.location.longitude))+'" target="_blank" rel="noopener noreferrer">Lihat Lokasi</a></div>':'<div class="customer-meta">Lokasi: belum dibagikan oleh pengguna</div>')+
     '</div><span class="badge '+(x.status==='completed'?'ok':(['failed','error'].includes(String(x.status).toLowerCase())?'off':'') )+'">'+esc(String(x.status||'unknown').toUpperCase())+'</span></div></article>').join('');
 }
 $('saveFreeMaxMb').onclick=async()=>{
