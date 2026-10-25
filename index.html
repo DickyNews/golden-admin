@@ -462,7 +462,7 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
       </div>
       <div class="stat-grid">
         <div class="stat"><small>Service</small><b id="statService">-</b></div>
-        <div class="stat"><small>Harga / video</small><b id="statCoin">-</b></div>
+        <div class="stat"><small>Model pembayaran</small><b id="statCoin">Langganan</b></div>
         <div class="stat"><small>Maksimum file</small><b id="statMax">-</b></div>
       </div>
       <div class="status" id="systemStatus"></div>
@@ -476,7 +476,7 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
         </div>
         <div class="grid">
           <div class="field full"><label>Pilih layanan</label><select id="serviceSelect"><option value="golden_hd_tiktok">Golden HD TikTok (SDR)</option><option value="golden_hdr_tiktok">Golden HDR TikTok</option></select></div>
-          <div class="field"><label>Harga per video (COIN)</label><input id="coin" type="number" min="0" step="1"></div>
+          <input id="coin" type="hidden" value="0">
           <div class="field"><label>Maksimum ukuran video (MB)</label><input id="maxMb" type="number" min="1" step="1"></div>
           <div class="field full"><label>Status layanan</label><select id="active"><option value="true">AKTIF</option><option value="false">NONAKTIF</option></select></div>
         </div>
@@ -633,7 +633,7 @@ async function loadPricing(){
   $('serviceStatus').textContent=s.is_active?'AKTIF':'NONAKTIF';
   $('serviceStatus').className='badge '+(s.is_active?'':'off');
   $('statService').textContent=(s.name||s.service_code)+(s.service_code==='golden_hdr_tiktok'?' (HDR)':' (SDR)');
-  $('statCoin').textContent=String(s.coin_cost??0)+' COIN';
+  $('statCoin').textContent='Langganan';
   $('statMax').textContent=Math.round(Number(s.max_file_size_bytes??0)/1048576)+' MB';
   setStatus('pricingStatus','Pengaturan terbaru berhasil dimuat.','ok');
 }
