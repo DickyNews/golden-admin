@@ -463,44 +463,10 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
       <div class="stat-grid">
         <div class="stat"><small>Service</small><b id="statService">-</b></div>
         <div class="stat"><small>Model pembayaran</small><b id="statCoin">Langganan</b></div>
-        <div class="stat"><small>Maksimum file</small><b id="statMax">-</b></div>
+        <div class="stat"><small>Paket aktif</small><b id="statMax">Dikelola di panel paket</b></div>
       </div>
       <div class="status" id="systemStatus"></div>
     </section>
-
-    <div class="grid">
-      <section class="card">
-        <div class="card-head">
-          <div><h2>Pengaturan Layanan</h2><p>Atur harga, batas ukuran, dan status SDR/HDR secara terpisah.</p></div>
-          <span class="badge" id="serviceStatus">MEMUAT</span>
-        </div>
-        <div class="grid">
-          <div class="field full"><label>Pilih layanan</label><select id="serviceSelect"><option value="golden_hd_tiktok">Golden HD TikTok (SDR)</option><option value="golden_hdr_tiktok">Golden HDR TikTok</option></select></div>
-          <input id="coin" type="hidden" value="0">
-          <div class="field"><label>Maksimum ukuran video (MB)</label><input id="maxMb" type="number" min="1" step="1"></div>
-          <div class="field full"><label>Status layanan</label><select id="active"><option value="true">AKTIF</option><option value="false">NONAKTIF</option></select></div>
-        </div>
-        <div class="actions"><button class="btn primary" id="save">Simpan Pengaturan</button></div>
-        <div class="status" id="pricingStatus"></div>
-      </section>
-
-      <section class="card">
-        <div class="card-head">
-          <div><h2>Koneksi API</h2><p>Endpoint yang digunakan Admin Web.</p></div>
-          <span class="badge ok" id="healthBadge">CHECK</span>
-        </div>
-        <div class="api-list">
-          <div class="api-row"><span>API Base</span><b>HTTPS</b></div>
-          <div class="api-row"><span>Health</span><b id="healthText">Memeriksa...</b></div>
-          <div class="api-row"><span>Database</span><b id="databaseHealthText">Memeriksa...</b></div>
-          <div class="api-row"><span>Admin session</span><b id="sessionText">Aktif</b></div>
-          <div class="api-row"><span>Service code</span><b id="apiServiceCode">golden_hd_tiktok</b></div>
-        </div>
-        <div class="status" id="healthStatus"></div>
-      </section>
-    </div>
-
-    
 
     <section class="card" id="customersPanel">
       <div class="card-head">
