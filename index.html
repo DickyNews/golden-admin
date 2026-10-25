@@ -392,6 +392,16 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
 </style>
+<style id="account-management-responsive">
+@media(max-width:760px){
+ #customersPanel .customer-tools{grid-template-columns:1fr!important}
+ #customersPanel .customer-actions{grid-template-columns:1fr!important}
+ #customersPanel .management-user .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:420px){
+ #customersPanel .management-user .grid{grid-template-columns:1fr!important}
+}
+</style>
 </head>
 <body>
 <div id="loginView" class="login-wrap">
