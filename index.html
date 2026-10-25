@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Dicky News Golden Admin</title>
 <style>
+  /* Compact, independently scrollable Free history: show about three records at once. */
+  #freeUsageHistory{max-height:660px;overflow-y:auto;overscroll-behavior:contain;padding-right:5px;scrollbar-gutter:stable}
+  #freeUsageHistory .customer-card{margin-bottom:10px}
+  #freeUsageHistory .customer-card:last-child{margin-bottom:0}
+
 :root{
   --bg:#080808;--panel:#111;--panel2:#151515;--line:#292929;--line2:#353535;
   --text:#f5f5f5;--muted:#9b9b9b;--yellow:#62f3ff;--yellow2:#a78bfa;
@@ -501,8 +506,7 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
         <span class="badge" id="freeUsageBadge">FREE</span>
       </div>
       <div class="grid">
-        <div class="field"><label>Maksimum file fitur Free (MB)</label><input id="freeMaxMb" type="number" min="1" max="4096" step="1" value="50"></div>
-        <div class="field"><label>Maksimum file layanan berbayar (MB)</label><input id="paidMaxMbSync" type="number" min="1" max="4096" step="1" value="1024" readonly><div class="status">Nilai ini mengikuti Pengaturan Layanan di bawah; ubah di sana untuk menyimpan batas layanan berbayar.</div></div>
+        <div class="field full"><label>Maksimum file fitur Free (MB)</label><input id="freeMaxMb" type="number" min="1" max="4096" step="1" value="50"></div>
       </div>
       <div class="actions"><button class="btn primary" id="saveFreeMaxMb">Simpan Batas Free</button><button class="btn secondary" id="refreshFreeUsage">Segarkan Riwayat Free</button></div>
       <div class="status" id="freeUsageStatus"></div>
@@ -615,7 +619,7 @@ async function loadPricing(){
   $('serviceSelect').value=s.service_code;
   $('apiServiceCode').textContent=s.service_code;
   $('coin').value=Number(s.coin_cost??0);
-  $('maxMb').value=Math.round(Number(s.max_file_size_bytes??0)/1048576);if($('paidMaxMbSync'))$('paidMaxMbSync').value=$('maxMb').value;
+  $('maxMb').value=Math.round(Number(s.max_file_size_bytes??0)/1048576);
   $('active').value=String(!!s.is_active);
   $('serviceStatus').textContent=s.is_active?'AKTIF':'NONAKTIF';
   $('serviceStatus').className='badge '+(s.is_active?'':'off');
