@@ -805,6 +805,7 @@ $('createCustomer').onclick=async()=>{
  try{
   const username=$('customerName').value.trim(),whatsapp=$('customerWhatsapp').value.trim()||null,planId=Number($('createCustomerPlan').value);
   if(username.length<2)throw new Error('Username wajib diisi (minimal 2 karakter).');
+  if(managementCustomersCache.some(c=>String(c.name||'').trim().toLowerCase()===username.toLowerCase()))throw new Error('Username sudah digunakan. Pilih username lain.');
   if(!planId)throw new Error('Pilih paket sebelum membuat akun.');
   if(!confirm('Buat akun '+username+', aktifkan paket, dan generate key permanen sekarang?'))return;
   button.disabled=true;button.textContent='Membuat akun…';
@@ -950,8 +951,8 @@ function formatDevice(ua){
   const s=String(ua||'Unknown');
   let device='Perangkat tidak dikenali';
   if(/Android/i.test(s))device='Android';
-  else if(/iPhone/i.test(s))device='iPhone';
-  else if(/iPad/i.test(s))device='iPad';
+  else if(/iPhone/i.test(s))device='Apple iPhone';
+  else if(/iPad/i.test(s))device='Apple iPad';
   else if(/Windows NT/i.test(s))device='Windows';
   else if(/Mac OS X/i.test(s))device='macOS';
   else if(/Linux/i.test(s))device='Linux';
