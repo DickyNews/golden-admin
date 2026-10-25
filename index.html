@@ -567,6 +567,15 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
       </div>
     </section>
   
+
+<section class="card" id="subscriptionControl" style="margin:20px 0">
+ <div class="card-head"><div><h2>Manajemen Paket Langganan</h2><p>Semua nilai paket disimpan di server dan disinkronkan ke web customer. Sistem koin lama tetap aktif selama masa transisi.</p></div><button class="btn secondary" id="refreshSubscriptions" type="button">Segarkan Paket</button></div>
+ <div id="subscriptionPlansAdmin" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px"><p>Memuat konfigurasi paket…</p></div>
+ <div class="divider" style="margin:20px 0"></div>
+ <div class="card-head"><div><h3>Langganan Customer</h3><p>Pilih paket dan aktifkan 30 hari sejak aktivasi. Aktivasi menggantikan langganan aktif sebelumnya.</p></div></div>
+ <div id="subscriptionCustomersAdmin" style="display:grid;gap:10px"><p>Memuat customer…</p></div>
+ <div class="status" id="subscriptionAdminStatus"></div>
+</section>
 </main>
 </div>
 
@@ -1036,6 +1045,38 @@ async function loadServerStatus(){
 }
 $('saveServerSettings').onclick=async()=>{const data={refresh_seconds:Number($('serverRefreshSeconds').value),cpu_warning_percent:Number($('cpuWarning').value),ram_warning_percent:Number($('ramWarning').value),disk_warning_percent:Number($('diskWarning').value)};try{$('saveServerSettings').disabled=true;const d=await api('/admin/server/settings',{method:'PUT',body:JSON.stringify(data)});serverSettingsCache=d.settings;await loadServerSettings();await loadServerStatus();$('settingsSavedBadge').textContent='TERSIMPAN';$('settingsSavedBadge').className='badge ok';setStatus('serverSettingsStatus','Pengaturan tersimpan di server dan interval refresh diperbarui.','ok')}catch(e){setStatus('serverSettingsStatus','Gagal menyimpan: '+e.message,'err')}finally{$('saveServerSettings').disabled=false}};
 
+
+async function loadSubscriptionPlansAdmin(){
+ const d=await api('/admin/subscription/plans'),plans=Array.isArray(d.plans)?d.plans:[];
+ $('subscriptionPlansAdmin').innerHTML=plans.map(p=>'<article class="card" style="padding:14px;min-width:0" data-plan-id="'+p.id+'"><h3>'+esc(p.name)+'</h3><div class="field"><label>Nama paket</label><input data-f="name" value="'+esc(p.name)+'"></div><div class="field"><label>Harga (Rupiah)</label><input data-f="price_idr" type="number" min="0" step="1000" value="'+p.price_idr+'"></div><div class="field"><label>Maks. ukuran video (MB)</label><input data-f="max_file_size_mb" type="number" min="1" max="4096" step="1" value="'+p.max_file_size_mb+'"></div><div class="field"><label>Kuota proses</label><input data-f="process_quota" type="number" min="1" value="'+p.process_quota+'"></div><div class="field"><label>Masa aktif (hari)</label><input data-f="duration_days" type="number" min="1" max="3650" value="'+p.duration_days+'"></div><div class="field"><label>Urutan tampil</label><input data-f="sort_order" type="number" min="1" value="'+p.sort_order+'"></div><div class="field"><label>Status paket</label><select data-f="is_active"><option value="true" '+(p.is_active?'selected':'')+'>Aktif</option><option value="false" '+(!p.is_active?'selected':'')+'>Nonaktif</option></select></div><button class="btn primary save-sub-plan" type="button">Simpan Paket</button></article>').join('');
+}
+async function loadSubscriptionCustomersAdmin(){
+ const [d,p]=await Promise.all([api('/admin/subscriptions'),api('/admin/subscription/plans')]);
+ const plans=p.plans||[],customers=d.customers||[];
+ $('subscriptionCustomersAdmin').innerHTML=customers.map(c=>{
+  const sub=c.subscription,expiry=sub&&sub.expires_at?new Date(sub.expires_at).toLocaleString('id-ID'):'Belum berlangganan';
+  return '<article class="card" style="padding:13px;display:grid;grid-template-columns:minmax(140px,1fr) minmax(160px,1fr) auto;gap:10px;align-items:center"><div><b>'+esc(c.name)+'</b><div style="font-size:12px;color:var(--muted)">ID '+c.id+' · '+(sub?esc(sub.plan_name)+' · sisa '+sub.processes_remaining+'/'+sub.process_quota+' proses':'Belum ada paket')+'</div><div style="font-size:12px;color:var(--muted)">Berakhir: '+esc(expiry)+'</div></div><select data-customer-plan="'+c.id+'" class="subscription-customer-plan">'+plans.filter(x=>x.is_active).map(x=>'<option value="'+x.id+'" '+(sub&&sub.plan_id===x.id?'selected':'')+'>'+esc(x.name)+' · '+Number(x.process_quota)+' proses</option>').join('')+'</select><button class="btn primary activate-subscription" data-customer-id="'+c.id+'" type="button">Aktifkan 30 Hari</button></article>';
+ }).join('')||'<p>Belum ada customer.</p>';
+}
+async function loadSubscriptionAdmin(){await Promise.all([loadSubscriptionPlansAdmin(),loadSubscriptionCustomersAdmin()])}
+$('refreshSubscriptions').onclick=()=>loadSubscriptionAdmin().then(()=>setStatus('subscriptionAdminStatus','Paket dan langganan disegarkan dari server.','ok')).catch(e=>setStatus('subscriptionAdminStatus',e.message,'err'));
+$('subscriptionPlansAdmin').addEventListener('click',async e=>{
+ const b=e.target.closest('.save-sub-plan');if(!b)return;
+ const card=b.closest('[data-plan-id]'),id=card.dataset.planId;
+ const val=f=>card.querySelector('[data-f="'+f+'"]').value;
+ const data={name:val('name'),price_idr:Number(val('price_idr')),max_file_size_mb:Number(val('max_file_size_mb')),process_quota:Number(val('process_quota')),duration_days:Number(val('duration_days')),sort_order:Number(val('sort_order')),is_active:val('is_active')==='true'};
+ b.disabled=true;
+ try{await api('/admin/subscription/plans/'+id,{method:'PUT',body:JSON.stringify(data)});await loadSubscriptionAdmin();setStatus('subscriptionAdminStatus','Paket tersimpan di PostgreSQL dan API. Web customer akan membaca nilai terbaru.','ok')}
+ catch(err){setStatus('subscriptionAdminStatus','Gagal menyimpan paket: '+err.message,'err')}finally{b.disabled=false}
+});
+$('subscriptionCustomersAdmin').addEventListener('click',async e=>{
+ const b=e.target.closest('.activate-subscription');if(!b)return;
+ const id=b.dataset.customerId,sel=$('subscriptionCustomersAdmin').querySelector('[data-customer-plan="'+id+'"]');
+ if(!confirm('Aktifkan paket terpilih untuk customer ID '+id+'? Masa aktif mulai dihitung sekarang selama 30 hari.'))return;
+ b.disabled=true;
+ try{await api('/admin/customers/'+id+'/subscription',{method:'POST',body:JSON.stringify({plan_id:Number(sel.value),duration_days:30,notes:'Migrasi/aktivasi melalui web admin'})});await loadSubscriptionCustomersAdmin();setStatus('subscriptionAdminStatus','Langganan diaktifkan. Tanggal mulai dan kedaluwarsa dicatat oleh server.','ok')}
+ catch(err){setStatus('subscriptionAdminStatus','Aktivasi gagal: '+err.message,'err')}finally{b.disabled=false}
+});
 </script>
 </body>
 <!-- GOLDEN_ADMIN_REFRESH_TIMEOUT_FIX: requests fail visibly instead of hanging -->
