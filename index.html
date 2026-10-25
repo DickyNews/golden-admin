@@ -615,7 +615,7 @@ async function loadPricing(){
   $('serviceSelect').value=s.service_code;
   $('apiServiceCode').textContent=s.service_code;
   $('coin').value=Number(s.coin_cost??0);
-  $('maxMb').value=Math.round(Number(s.max_file_size_bytes??0)/1048576);
+  $('maxMb').value=Math.round(Number(s.max_file_size_bytes??0)/1048576);if($('paidMaxMbSync'))$('paidMaxMbSync').value=$('maxMb').value;
   $('active').value=String(!!s.is_active);
   $('serviceStatus').textContent=s.is_active?'AKTIF':'NONAKTIF';
   $('serviceStatus').className='badge '+(s.is_active?'':'off');
@@ -717,6 +717,8 @@ async function openDashboard(){
   const results=await Promise.allSettled([
     loadPricing().catch(e=>{setStatus('pricingStatus','Gagal memuat pengaturan: '+e.message,'err');throw e}),
     loadCustomers().catch(e=>{setStatus('customerStatus','Gagal memuat customer: '+e.message,'err');throw e}),
+    loadFreeSettings().catch(e=>{setStatus('freeUsageStatus','Gagal memuat batas Free: '+e.message,'err');throw e}),
+    loadFreeUsageHistory().catch(e=>{setStatus('freeUsageStatus','Gagal memuat riwayat Free: '+e.message,'err');throw e}),
     checkHealth(),
     loadStorageStats(),
     loadServerSettings(),
@@ -771,6 +773,8 @@ $('refreshAll').onclick=async()=>{
     const results=await Promise.allSettled([
       loadPricing(),
       loadCustomers(),
+      loadFreeSettings(),
+      loadFreeUsageHistory(),
       checkHealth(),
       loadStorageStats(),
       (async()=>{await loadServerSettings();await loadServerStatus()})()
