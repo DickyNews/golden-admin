@@ -632,23 +632,37 @@ async function loadCustomers(){
   renderHistoryCustomers();
   setStatus('customerStatus',customersCache.filter(c=>!/^dicky news free guest$/i.test(customerName(c))).length+' customer terbaca dari API. Akun sistem Free dipisahkan di panel Pengguna Free.','ok');
 }
+function remainingDays(expiresAt){if(!expiresAt)return null;return Math.max(0,Math.ceil((new Date(expiresAt).getTime()-Date.now())/86400000))}
 function renderCustomers(){
-  const q=$('customerSearch').value.trim().toLowerCase();
-  const list=customersCache.filter(c=>!/^dicky news free guest$/i.test(customerName(c))&&(customerName(c)+' '+customerId(c)).toLowerCase().includes(q));
-  if(!list.length){
-    $('customers').innerHTML='<div class="note">'+(customersCache.length?'Tidak ada customer yang cocok dengan pencarian.':'Belum ada customer.')+'</div>';
-    return;
-  }
-  $('customers').innerHTML=list.map(c=>{
-    const id=customerId(c), name=customerName(c), bal=customerBalance(c);
-    return '<article class="customer-card" data-id="'+esc(id)+'">'+
-      '<div class="customer-main"><div><div class="customer-name">'+esc(name)+'</div><div class="customer-meta">ID: '+esc(id)+'</div><div class="customer-meta">WhatsApp: '+(customerWhatsapp(c)?'<a href="https://wa.me/'+esc(String(customerWhatsapp(c)).replace(/[^0-9]/g,''))+'" target="_blank" rel="noopener noreferrer" style="color:var(--yellow)">'+esc(customerWhatsapp(c))+'</a>':'Belum diisi')+'</div></div><div class="coin">Paket langganan dikelola di panel paket</div></div>'+
-      '<div class="customer-actions"><input class="username-edit" value="'+esc(name)+'" maxlength="100" placeholder="Username customer"><button class="btn secondary save-username">Simpan Username</button></div>'+
-      '<div class="customer-actions">'+
-      '<button class="btn secondary key">Generate Key</button>'+
-      '<button class="btn danger delete-customer">Hapus Customer</button>'+
-      '</div><div class="key-box result-key hidden"></div></article>';
-  }).join('');
+ const q=($('customerSearch')?.value||'').trim().toLowerCase(),pf=$('customerPackageFilter')?.value||'',sf=$('customerStatusFilter')?.value||'';
+ const rows=managementCustomersCache.filter(c=>!/^dicky news free guest$/i.test(String(c.name||''))).filter(c=>{
+  const sub=c.subscription,days=sub?remainingDays(sub.expires_at):null;
+  const st=!c.is_active?'inactive':!sub?'none':(days===0||sub.status!=='active'?'expired':'active');
+  const hay=[c.name,c.id,c.whatsapp,c.device_info,sub?.plan_name].join(' ').toLowerCase();
+  return (!q||hay.includes(q))&&(!pf||String(sub?.plan_id||'')===pf)&&(!sf||st===sf);
+ });
+ if(!rows.length){$('customers').innerHTML='<div class="note">Tidak ada akun yang cocok dengan filter atau pencarian.</div>';return}
+ $('customers').innerHTML=rows.map(c=>{
+  const sub=c.subscription,days=sub?remainingDays(sub.expires_at):null;
+  const status=!c.is_active?'Akun nonaktif':!sub?'Belum ada paket':days===0||sub.status!=='active'?'Kedaluwarsa':'Aktif';
+  const statusClass=status==='Aktif'?'ok':'off',ua=String(c.device_info||'Belum login');
+  const device=ua==='Belum login'?ua:formatDevice(ua)+' · '+ua.slice(0,150);
+  const expiry=sub?formatLocalDate(sub.expires_at):'—';
+  const usage=sub?Number(sub.processes_used||0)+' / '+Number(sub.process_quota||0)+' proses':'—';
+  const remain=sub?Number(sub.processes_remaining||0)+' proses':'—';
+  return '<article class="customer-card management-user" data-id="'+esc(c.id)+'">'+
+   '<div class="customer-main"><div><div class="customer-name">'+esc(c.name)+'</div><div class="customer-meta">ID: '+esc(c.id)+' · WhatsApp: '+(c.whatsapp?'<a href="https://wa.me/'+esc(String(c.whatsapp).replace(/[^0-9]/g,''))+'" target="_blank" rel="noopener noreferrer">'+esc(c.whatsapp)+'</a>':'Tidak diisi')+'</div></div><span class="badge '+statusClass+'">'+esc(status)+'</span></div>'+
+   '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:12px 0">'+
+   '<div class="stat"><small>Paket</small><b>'+esc(sub?.plan_name||'Belum ada')+'</b></div>'+
+   '<div class="stat"><small>Penggunaan</small><b>'+esc(usage)+'</b></div>'+
+   '<div class="stat"><small>Sisa kuota</small><b>'+esc(remain)+'</b></div>'+
+   '<div class="stat"><small>Sisa hari</small><b>'+(days===null?'—':days+' hari')+'</b></div>'+
+   '<div class="stat"><small>Kedaluwarsa</small><b>'+esc(expiry)+'</b></div>'+
+   '<div class="stat"><small>Perangkat terakhir</small><b style="font-size:12px;overflow-wrap:anywhere">'+esc(device)+'</b><small>Terlihat: '+esc(c.last_seen?formatLocalDate(c.last_seen):'Belum login')+'</small></div></div>'+
+   '<div class="customer-actions"><select class="management-plan" aria-label="Pilih paket">'+subscriptionPlansCache.filter(p=>p.is_active).map(p=>'<option value="'+p.id+'" '+(sub&&Number(sub.plan_id)===Number(p.id)?'selected':'')+'>'+esc(p.name)+' · '+p.process_quota+' proses</option>').join('')+'</select><button class="btn primary activate-subscription" type="button">Aktifkan / Ganti Paket</button></div>'+
+   '<div class="customer-actions"><input class="username-edit" value="'+esc(c.name)+'" maxlength="100" placeholder="Username"><button class="btn secondary save-username" type="button">Simpan Username</button><button class="btn secondary key" type="button">Tampilkan Key Permanen</button><button class="btn danger delete-customer" type="button">Hapus Akun</button></div>'+
+   '<div class="key-box result-key hidden"></div></article>';
+ }).join('');
 }
 async function adjustCard(card){
   const id=card.dataset.id;
@@ -1035,10 +1049,23 @@ $('saveServerSettings').onclick=async()=>{const data={refresh_seconds:Number($('
 
 async function loadSubscriptionPlansAdmin(){
  const d=await api('/admin/subscription/plans'),plans=Array.isArray(d.plans)?d.plans:[];
+ subscriptionPlansCache=plans;
+ const activePlans=plans.filter(p=>p.is_active);
+ const createSel=$('createCustomerPlan'),prevCreate=createSel.value;
+ createSel.innerHTML='<option value="">Pilih paket…</option>'+activePlans.map(p=>'<option value="'+p.id+'">'+esc(p.name)+' · Rp '+Number(p.price_idr).toLocaleString('id-ID')+' · '+p.process_quota+' proses</option>').join('');
+ if(activePlans.some(p=>String(p.id)===prevCreate))createSel.value=prevCreate;
+ const filter=$('customerPackageFilter'),prevFilter=filter.value;
+ filter.innerHTML='<option value="">Semua paket</option>'+plans.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');
+ if(plans.some(p=>String(p.id)===prevFilter))filter.value=prevFilter;
+ renderCustomers();
  $('subscriptionPlansAdmin').innerHTML=plans.map(p=>'<article class="card" style="padding:14px;min-width:0" data-plan-id="'+p.id+'"><h3>'+esc(p.name)+'</h3><div class="field"><label>Nama paket</label><input data-f="name" value="'+esc(p.name)+'"></div><div class="field"><label>Harga (Rupiah)</label><input data-f="price_idr" type="number" min="0" step="1000" value="'+p.price_idr+'"></div><div class="field"><label>Maks. ukuran video (MB)</label><input data-f="max_file_size_mb" type="number" min="1" max="4096" step="1" value="'+p.max_file_size_mb+'"></div><div class="field"><label>Kuota proses</label><input data-f="process_quota" type="number" min="1" value="'+p.process_quota+'"></div><div class="field"><label>Masa aktif (hari)</label><input data-f="duration_days" type="number" min="1" max="3650" value="'+p.duration_days+'"></div><div class="field"><label>Urutan tampil</label><input data-f="sort_order" type="number" min="1" value="'+p.sort_order+'"></div><div class="field"><label>Status paket</label><select data-f="is_active"><option value="true" '+(p.is_active?'selected':'')+'>Aktif</option><option value="false" '+(!p.is_active?'selected':'')+'>Nonaktif</option></select></div><button class="btn primary save-sub-plan" type="button">Simpan Paket</button></article>').join('');
 }
 async function loadSubscriptionCustomersAdmin(){
- const [d,p]=await Promise.all([api('/admin/subscriptions'),api('/admin/subscription/plans')]);
+ const d=await api('/admin/subscriptions');
+ managementCustomersCache=d.customers||[];
+ renderCustomers();
+ return;
+ const p={plans:subscriptionPlansCache};
  const plans=p.plans||[],customers=d.customers||[];
  $('subscriptionCustomersAdmin').innerHTML=customers.map(c=>{
   const sub=c.subscription,expiry=sub&&sub.expires_at?new Date(sub.expires_at).toLocaleString('id-ID'):'Belum berlangganan';
