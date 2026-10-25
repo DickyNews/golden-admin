@@ -796,6 +796,9 @@ $('refreshAll').onclick=async()=>{
       setStatus('systemStatus','Semua pengaturan dan data yang tersedia berhasil disegarkan dari backend.','ok');
     }
     $('apiBadge').title='Status koneksi diperbarui '+new Date().toLocaleTimeString('id-ID');
+    // Soft page refresh: update every data-backed panel while preserving the authenticated admin view.
+    window.scrollTo({top:0,behavior:'smooth'});
+    document.dispatchEvent(new CustomEvent('golden-admin-refreshed',{detail:{at:new Date().toISOString(),failed}}));
   }catch(e){
     setStatus('systemStatus','Pembaruan gagal: '+e.message,'err');
     setStatus('serverUpdated','Pembaruan tidak selesai: '+e.message,'err');
