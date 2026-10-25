@@ -1057,7 +1057,7 @@ async function loadSubscriptionCustomersAdmin(){
  const plans=p.plans||[],customers=d.customers||[];
  $('subscriptionCustomersAdmin').innerHTML=customers.map(c=>{
   const sub=c.subscription,expiry=sub&&sub.expires_at?new Date(sub.expires_at).toLocaleString('id-ID'):'Belum berlangganan';
-  return '<article class="card" style="padding:13px;display:grid;grid-template-columns:minmax(140px,1fr) minmax(160px,1fr) auto;gap:10px;align-items:center"><div><b>'+esc(c.name)+'</b><div style="font-size:12px;color:var(--muted)">ID '+c.id+' · '+(sub?esc(sub.plan_name)+' · sisa '+sub.processes_remaining+'/'+sub.process_quota+' proses':'Belum ada paket')+'</div><div style="font-size:12px;color:var(--muted)">Berakhir: '+esc(expiry)+'</div></div><select data-customer-plan="'+c.id+'" class="subscription-customer-plan">'+plans.filter(x=>x.is_active).map(x=>'<option value="'+x.id+'" '+(sub&&sub.plan_id===x.id?'selected':'')+'>'+esc(x.name)+' · '+Number(x.process_quota)+' proses</option>').join('')+'</select><button class="btn primary activate-subscription" data-customer-id="'+c.id+'" type="button">Aktifkan 30 Hari</button></article>';
+  return '<article class="card" style="padding:13px;display:grid;grid-template-columns:minmax(140px,1fr) minmax(160px,1fr) auto;gap:10px;align-items:center"><div><b>'+esc(c.name)+'</b><div style="font-size:12px;color:var(--muted)">ID '+c.id+' · '+(sub?esc(sub.plan_name)+' · sisa '+sub.processes_remaining+'/'+sub.process_quota+' proses':'Belum ada paket')+'</div><div style="font-size:12px;color:var(--muted)">Berakhir: '+esc(expiry)+'</div></div><select data-customer-plan="'+c.id+'" class="subscription-customer-plan">'+plans.filter(x=>x.is_active).map(x=>'<option value="'+x.id+'" '+(sub&&sub.plan_id===x.id?'selected':'')+'>'+esc(x.name)+' · '+Number(x.process_quota)+' proses</option>').join('')+'</select><button class="btn primary activate-subscription" data-customer-id="'+c.id+'" type="button">Aktifkan Paket</button></article>';
  }).join('')||'<p>Belum ada customer.</p>';
 }
 async function loadSubscriptionAdmin(){await Promise.all([loadSubscriptionPlansAdmin(),loadSubscriptionCustomersAdmin()])}
@@ -1074,9 +1074,9 @@ $('subscriptionPlansAdmin').addEventListener('click',async e=>{
 $('subscriptionCustomersAdmin').addEventListener('click',async e=>{
  const b=e.target.closest('.activate-subscription');if(!b)return;
  const id=b.dataset.customerId,sel=$('subscriptionCustomersAdmin').querySelector('[data-customer-plan="'+id+'"]');
- if(!confirm('Aktifkan paket terpilih untuk customer ID '+id+'? Masa aktif mulai dihitung sekarang selama 30 hari.'))return;
+ if(!confirm('Aktifkan paket terpilih untuk customer ID '+id+'? Masa aktif mulai dihitung sekarang sesuai durasi paket yang dikonfigurasi di server.'))return;
  b.disabled=true;
- try{await api('/admin/customers/'+id+'/subscription',{method:'POST',body:JSON.stringify({plan_id:Number(sel.value),duration_days:30,notes:'Migrasi/aktivasi melalui web admin'})});await loadSubscriptionCustomersAdmin();setStatus('subscriptionAdminStatus','Langganan diaktifkan. Tanggal mulai dan kedaluwarsa dicatat oleh server.','ok')}
+ try{await api('/admin/customers/'+id+'/subscription',{method:'POST',body:JSON.stringify({plan_id:Number(sel.value),notes:'Aktivasi melalui web admin'})});await loadSubscriptionCustomersAdmin();setStatus('subscriptionAdminStatus','Langganan diaktifkan. Tanggal mulai dan kedaluwarsa dicatat oleh server.','ok')}
  catch(err){setStatus('subscriptionAdminStatus','Aktivasi gagal: '+err.message,'err')}finally{b.disabled=false}
 });
 </script>
