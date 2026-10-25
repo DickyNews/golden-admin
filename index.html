@@ -818,16 +818,32 @@ $('refreshAll').onclick=async()=>{
   }
 };
 $('createCustomer').onclick=async()=>{
+ const button=$('createCustomer');
+ try{
+  const username=$('customerName').value.trim(),whatsapp=$('customerWhatsapp').value.trim()||null,planId=Number($('createCustomerPlan').value);
+  if(username.length<2)throw new Error('Username wajib diisi (minimal 2 karakter).');
+  if(!planId)throw new Error('Pilih paket sebelum membuat akun.');
+  if(!confirm('Buat akun '+username+', aktifkan paket, dan generate key permanen sekarang?'))return;
+  button.disabled=true;button.textContent='Membuat akun…';
+  const created=await api('/admin/customers',{method:'POST',body:JSON.stringify({name:username,whatsapp})});
+  const id=created.customer?.id;if(!id)throw new Error('Akun dibuat tetapi ID tidak dikembalikan server.');
   try{
-    const name=$('customerName').value.trim();
-    const whatsapp=$('customerWhatsapp').value.trim()||null;
-    if(!name)throw new Error('Nama customer wajib diisi');
-    await api('/admin/customers',{method:'POST',body:JSON.stringify({name,whatsapp})});
-    $('customerName').value='';$('customerWhatsapp').value='';
-    await loadCustomers();
-    setStatus('customerStatus','Customer berhasil dibuat.','ok');
-  }catch(e){setStatus('customerStatus','Gagal menyimpan COIN. '+e.message,'err')}
+   await api('/admin/customers/'+encodeURIComponent(id)+'/subscription',{method:'POST',body:JSON.stringify({plan_id:planId,notes:'Aktivasi dari Manajemen Akun & Langganan'})});
+   button.textContent='Membuat key…';
+   const keyData=await api('/admin/customers/'+encodeURIComponent(id)+'/keys',{method:'POST',body:JSON.stringify({})});
+   $('customerName').value='';$('customerWhatsapp').value='';$('createCustomerPlan').value='';
+   await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin()]);
+   const card=[...document.querySelectorAll('.management-user')].find(el=>el.dataset.id===String(id)),key=keyData.key||'';
+   if(card&&key){const box=card.querySelector('.result-key');box.classList.remove('hidden');box.innerHTML='<b>KEY PERMANEN:</b> '+esc(key)+'<div style="margin-top:10px"><button type="button" class="btn secondary copy-key">Salin Key</button></div>';box.querySelector('.copy-key').onclick=async()=>{try{await navigator.clipboard.writeText(key);setStatus('customerStatus','Key berhasil disalin. Key tidak berubah saat ditampilkan ulang.','ok')}catch{setStatus('customerStatus','Salin manual key yang tampil.','err')}}}
+   setStatus('customerStatus','Akun '+username+' berhasil dibuat, paket aktif, dan key permanen tersedia. '+(keyData.created===false?'Key lama yang sama dipulihkan.':'Simpan key ini untuk user.'),'ok');
+  }catch(e){setStatus('customerStatus','Akun dibuat, tetapi aktivasi paket atau key gagal: '+e.message+'. Akun tetap ada; lanjutkan melalui kontrol pada kartu akun.','err');await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin()])}
+ }catch(e){setStatus('customerStatus','Gagal membuat akun: '+e.message,'err')}
+ finally{button.disabled=false;button.textContent='Generate Key & Aktifkan Akun'}
 };
+$('customerSearch').oninput=renderCustomers;
+$('customerPackageFilter').onchange=renderCustomers;
+$('customerStatusFilter').onchange=renderCustomers;
+$('clearSearch').onclick=()=>{$('customerSearch').value='';$('customerPackageFilter').value='';$('customerStatusFilter').value='';renderCustomers()};
 $('customerSearch').oninput=renderCustomers;
 $('clearSearch').onclick=()=>{$('customerSearch').value='';renderCustomers()};
 function formatBytes(value){
