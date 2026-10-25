@@ -468,6 +468,24 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
       <div class="status" id="systemStatus"></div>
     </section>
 
+<section class="card" id="freeUsagePanel">
+      <div class="card-head">
+        <div><h2>Pengguna Free & Riwayat</h2><p>Bagian terpisah untuk penggunaan gratis, batas ukuran file, waktu, dan informasi perangkat yang dikirim browser.</p></div>
+        <span class="badge" id="freeUsageBadge">FREE</span>
+      </div>
+      <div class="grid">
+        <div class="field full"><label>Maksimum file fitur Free (MB)</label><input id="freeMaxMb" type="number" min="1" max="4096" step="1" value="50"></div>
+      </div>
+      <div class="actions"><button class="btn primary" id="saveFreeMaxMb">Simpan Batas Free</button><button class="btn secondary" id="refreshFreeUsage">Segarkan Riwayat Free</button></div>
+      <div class="status" id="freeUsageStatus"></div>
+      <div class="stat-grid">
+        <div class="stat"><small>Total penggunaan Free</small><b id="freeUsageTotal">—</b></div>
+        <div class="stat"><small>Batas Free aktif</small><b id="freeUsageLimit">—</b></div>
+        <div class="stat"><small>Catatan perangkat</small><b id="freeUsageDevices">—</b></div>
+      </div>
+      <div id="freeUsageHistory" class="customer-list"><div class="note">Memuat riwayat penggunaan Free…</div></div>
+    </section>
+
     <section class="card" id="customersPanel">
       <div class="card-head">
         <div><h2>Customer & COIN</h2><p>Buat akun customer, ubah saldo COIN, dan generate key akses.</p></div>
@@ -679,6 +697,8 @@ async function openDashboard(){
     loadPricing().catch(e=>{setStatus('pricingStatus','Gagal memuat pengaturan: '+e.message,'err');throw e}),
     loadCustomers().catch(e=>{setStatus('customerStatus','Gagal memuat customer: '+e.message,'err');throw e}),
     loadSubscriptionAdmin().catch(e=>{setStatus('subscriptionAdminStatus','Gagal memuat langganan: '+e.message,'err');throw e}),
+    loadFreeSettings().catch(e=>{setStatus('freeUsageStatus','Gagal memuat batas Free: '+e.message,'err');throw e}),
+    loadFreeUsageHistory().catch(e=>{setStatus('freeUsageStatus','Gagal memuat riwayat Free: '+e.message,'err');throw e}),
     checkHealth(),
     loadStorageStats(),
     loadServerSettings(),
@@ -734,6 +754,8 @@ $('refreshAll').onclick=async()=>{
       loadPricing(),
       loadCustomers(),
       loadSubscriptionAdmin(),
+      loadFreeSettings(),
+      loadFreeUsageHistory(),
       checkHealth(),
       loadStorageStats(),
       (async()=>{await loadServerSettings();await loadServerStatus()})()
@@ -863,7 +885,7 @@ $('customers').addEventListener('click',async e=>{
       if(!confirm('Konfirmasi terakhir: data customer ID '+id+' akan dihapus permanen dari database. Lanjutkan?'))return;
       deleteButton.disabled=true;deleteButton.textContent='Menghapus...';
       const d=await api('/admin/customers/'+encodeURIComponent(id),{method:'DELETE'});
-      await Promise.all([loadCustomers(),loadStorageStats()]);
+      await Promise.all([loadCustomers(),loadFreeSettings(),loadFreeUsageHistory(),loadStorageStats()]);
       const detail=d.partial_cleanup
         ?'Customer dan data database dihapus, tetapi sebagian file gagal dibersihkan. Periksa log/server.'
         :'Customer, riwayat, transaksi, sesi, API key, dan file terkait yang tervalidasi telah diproses backend.';
@@ -920,6 +942,27 @@ async function loadFreeUsageHistory(){
     (x.error?'<div class="status err-text">Keterangan error: '+esc(x.error)+'</div>':'')+
     '</div><span class="badge '+(x.status==='completed'?'ok':(['failed','error'].includes(String(x.status).toLowerCase())?'off':'') )+'">'+esc(String(x.status||'unknown').toUpperCase())+'</span></div></article>').join('');
 }
+$('saveFreeMaxMb').onclick=async()=>{
+  const mb=Number($('freeMaxMb').value);
+  if(!Number.isInteger(mb)||mb<1||mb>4096){setStatus('freeUsageStatus','Masukkan batas Free 1–4096 MB.','err');return}
+  const b=$('saveFreeMaxMb');b.disabled=true;
+  try{
+    const d=await api('/admin/free-inject/settings',{method:'PUT',body:JSON.stringify({max_file_size_mb:mb})});
+    $('freeMaxMb').value=d.max_file_size_mb;
+    $('freeUsageLimit').textContent=d.max_file_size_mb+' MB';
+    await loadFreeUsageHistory();
+    setStatus('freeUsageStatus','Batas Free tersimpan di backend: '+d.max_file_size_mb+' MB. Upload baru langsung memakai batas ini.','ok');
+  }catch(e){setStatus('freeUsageStatus','Gagal menyimpan batas Free: '+e.message,'err')}
+  finally{b.disabled=false}
+};
+$('refreshFreeUsage').onclick=async()=>{
+  const b=$('refreshFreeUsage');b.disabled=true;
+  try{await Promise.all([loadFreeSettings(),loadFreeUsageHistory()]);setStatus('freeUsageStatus','Pengaturan dan riwayat Free berhasil disegarkan.','ok')}
+  catch(e){setStatus('freeUsageStatus','Gagal menyegarkan riwayat Free: '+e.message,'err')}
+  finally{b.disabled=false}
+};
+
+
 // SECURITY: every fresh page load must start logged out.
 // Invalidate any prior server-side admin session; never auto-restore the dashboard.
 $('dashboard').classList.remove('ready');
