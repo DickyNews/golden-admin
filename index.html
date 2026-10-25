@@ -924,31 +924,40 @@ $('customerHistory').addEventListener('click',async e=>{
   }catch(e){setStatus('storageStatus','Penghapusan Job #'+jobId+' gagal: '+e.message,'err');btn.disabled=false}
 });
 $('customers').addEventListener('click',async e=>{
-  const card=e.target.closest('.customer-card');if(!card)return;
-  const deleteButton=e.target.closest('.delete-customer');
-  try{
-    if(deleteButton){
-      const id=card.dataset.id;
-      const c=customersCache.find(x=>String(customerId(x))===String(id));
-      if(!confirm('HAPUS PERMANEN customer '+customerName(c||{})+' (ID '+id+') beserta seluruh riwayat job, transaksi COIN, sesi, API key, dan file input/output yang tervalidasi? Tindakan ini tidak dapat dibatalkan. Job aktif akan ditolak backend.'))return;
-      if(!confirm('Konfirmasi terakhir: data customer ID '+id+' akan dihapus permanen dari database. Lanjutkan?'))return;
-      deleteButton.disabled=true;deleteButton.textContent='Menghapus...';
-      const d=await api('/admin/customers/'+encodeURIComponent(id),{method:'DELETE'});
-      await Promise.all([loadCustomers(),loadFreeSettings(),loadFreeUsageHistory(),loadStorageStats()]);
-      const detail=d.partial_cleanup
-        ?'Customer dan data database dihapus, tetapi sebagian file gagal dibersihkan. Periksa log/server.'
-        :'Customer, riwayat, transaksi, sesi, API key, dan file terkait yang tervalidasi telah diproses backend.';
-      setStatus('customerStatus',detail,'ok');
-      setStatus('storageStatus',detail,d.partial_cleanup?'err':'ok');
-      return;
-    }
-    if(e.target.closest('.adjust')){e.target.disabled=true;await adjustCard(card)}
-    if(e.target.closest('.save-username')){const input=card.querySelector('.username-edit');const username=input.value.trim();if(username.length<2)throw new Error('Username minimal 2 karakter');await api('/admin/customers/'+encodeURIComponent(card.dataset.id)+'/username',{method:'PUT',body:JSON.stringify({username})});setStatus('customerStatus','Username berhasil diperbarui. Key tetap terikat ke customer ID '+card.dataset.id+'.','ok');await loadCustomers()}
-    if(e.target.closest('.key')){e.target.disabled=true;await generateCard(card)}
-  }catch(err){setStatus('customerStatus','Gagal menghapus/mengubah customer: '+err.message,'err')}
-  finally{document.querySelectorAll('.customer-card button').forEach(b=>{if(!b.classList.contains('delete-customer')||b.textContent!=='Menghapus...')b.disabled=false})}
+ const card=e.target.closest('.management-user');if(!card)return;
+ const id=card.dataset.id;
+ try{
+  if(e.target.closest('.copy-key'))return;
+  if(e.target.closest('.activate-subscription')){
+   const planId=Number(card.querySelector('.management-plan').value);
+   if(!planId)throw new Error('Pilih paket terlebih dahulu.');
+   if(!confirm('Aktifkan paket untuk '+card.querySelector('.customer-name').textContent+'? Masa aktif dimulai sekarang dan paket aktif sebelumnya diganti.'))return;
+   const b=e.target.closest('.activate-subscription');b.disabled=true;
+   await api('/admin/customers/'+encodeURIComponent(id)+'/subscription',{method:'POST',body:JSON.stringify({plan_id:planId,notes:'Pengaturan dari Manajemen Akun & Langganan'})});
+   await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin()]);
+   setStatus('customerStatus','Paket berhasil diaktifkan. Masa aktif dan kuota diperbarui oleh server.','ok');return;
+  }
+  if(e.target.closest('.delete-customer')){
+   const c=managementCustomersCache.find(x=>String(x.id)===String(id));
+   if(!confirm('Hapus akun '+(c?.name||id)+' beserta riwayat, sesi, key, dan file yang tervalidasi? Tindakan ini tidak dapat dibatalkan.'))return;
+   if(!confirm('Konfirmasi terakhir: hapus akun ID '+id+' secara permanen?'))return;
+   const b=e.target.closest('.delete-customer');b.disabled=true;b.textContent='Menghapus…';
+   await api('/admin/customers/'+encodeURIComponent(id),{method:'DELETE'});
+   await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin(),loadStorageStats()]);
+   setStatus('customerStatus','Akun dan data terkait telah diproses server.','ok');return;
+  }
+  if(e.target.closest('.save-username')){
+   const username=card.querySelector('.username-edit').value.trim();if(username.length<2)throw new Error('Username minimal 2 karakter.');
+   await api('/admin/customers/'+encodeURIComponent(id)+'/username',{method:'PUT',body:JSON.stringify({username})});
+   await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin()]);
+   setStatus('customerStatus','Username diperbarui; key permanen tetap terikat ke ID akun.','ok');return;
+  }
+  if(e.target.closest('.key')){
+   const b=e.target.closest('.key');b.disabled=true;await generateCard(card);
+  }
+ }catch(err){setStatus('customerStatus','Gagal menjalankan kontrol akun: '+err.message,'err')}
+ finally{card.querySelectorAll('button').forEach(b=>{if(b.textContent!=='Menghapus…')b.disabled=false})}
 });
-
 function formatLocalDate(value){
   if(!value)return 'Waktu tidak tersedia';
   const d=new Date(value);
