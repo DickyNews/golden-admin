@@ -504,23 +504,22 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
     </div>
 
     <section class="card" id="customersPanel">
-      <div class="card-head">
-        <div><h2>Customer & COIN</h2><p>Buat akun customer, ubah saldo COIN, dan generate key akses.</p></div>
-      </div>
-
-      <div class="grid">
-        <div class="field"><label>Nama customer</label><input id="customerName" placeholder="Nama customer"></div>
-        <div class="field"><label>WhatsApp (opsional)</label><input id="customerWhatsapp" placeholder="08xxxxxxxxxx" maxlength="30"></div>
-      </div>
-      <div class="actions"><button class="btn primary" id="createCustomer">Buat Customer</button></div>
-      <div class="status" id="customerStatus"></div>
-
-      <div class="customer-tools" style="margin-top:20px">
-        <input id="customerSearch" placeholder="Cari nama / ID customer...">
-        <button class="btn secondary" id="clearSearch">Reset</button>
-      </div>
-      <div id="customers" class="customer-list"><div class="note">Memuat daftar customer...</div></div>
-    </section>
+ <div class="card-head"><div><h2>Manajemen Akun & Langganan</h2><p>Buat akun, aktifkan paket, generate key permanen, dan pantau penggunaan serta perangkat user.</p></div><span class="badge ok">PAKET</span></div>
+ <div class="grid">
+  <div class="field"><label>Username (wajib)</label><input id="customerName" minlength="2" maxlength="100" required placeholder="Username untuk login"></div>
+  <div class="field"><label>Nomor WhatsApp (opsional)</label><input id="customerWhatsapp" placeholder="08xxxxxxxxxx" maxlength="30"></div>
+  <div class="field full"><label>Pilih paket (wajib)</label><select id="createCustomerPlan" required><option value="">Memuat paket…</option></select></div>
+ </div>
+ <div class="actions"><button class="btn primary" id="createCustomer" type="button">Generate Key & Aktifkan Akun</button></div>
+ <div class="status" id="customerStatus"></div>
+ <div class="customer-tools" style="margin-top:20px;display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) minmax(150px,1fr) auto;gap:10px">
+  <input id="customerSearch" placeholder="Cari username, ID, WhatsApp, perangkat…">
+  <select id="customerPackageFilter"><option value="">Semua paket</option></select>
+  <select id="customerStatusFilter"><option value="">Semua status</option><option value="active">Aktif</option><option value="expired">Kedaluwarsa</option><option value="inactive">Akun nonaktif</option><option value="none">Belum ada paket</option></select>
+  <button class="btn secondary" id="clearSearch" type="button">Reset</button>
+ </div>
+ <div id="customers" class="customer-list"><div class="note">Memuat daftar akun…</div></div>
+</section>
 
     <section class="card" id="historyStorageCard">
       <div class="card-head">
@@ -554,11 +553,9 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
   
 
 <section class="card" id="subscriptionControl" style="margin:20px 0">
- <div class="card-head"><div><h2>Manajemen Paket Langganan</h2><p>Semua nilai paket disimpan di server dan disinkronkan ke web customer. Sistem koin lama tetap aktif selama masa transisi.</p></div><button class="btn secondary" id="refreshSubscriptions" type="button">Segarkan Paket</button></div>
+ <div class="card-head"><div><h2>Manajemen Paket Langganan</h2><p>Semua nilai paket disimpan di server dan disinkronkan ke web customer.</p></div><button class="btn secondary" id="refreshSubscriptions" type="button">Segarkan Paket</button></div>
  <div id="subscriptionPlansAdmin" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px"><p>Memuat konfigurasi paket…</p></div>
  <div class="divider" style="margin:20px 0"></div>
- <div class="card-head"><div><h3>Langganan Customer</h3><p>Pilih paket dan aktifkan 30 hari sejak aktivasi. Aktivasi menggantikan langganan aktif sebelumnya.</p></div></div>
- <div id="subscriptionCustomersAdmin" style="display:grid;gap:10px"><p>Memuat customer…</p></div>
  <div class="status" id="subscriptionAdminStatus"></div>
 </section>
 </main>
@@ -572,6 +569,8 @@ let serverRefreshTimer=null;
 let selectedServiceCode='golden_hd_tiktok';
 const $=id=>document.getElementById(id);
 let customersCache=[];
+let managementCustomersCache=[];
+let subscriptionPlansCache=[];
 
 async function api(path,opt={}){
   const url=API_BASE+path;
