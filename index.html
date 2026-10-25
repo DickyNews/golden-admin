@@ -586,6 +586,7 @@ function getList(d){
 function customerId(c){return c.id??c.customer_id??c.uuid??''}
 function customerName(c){return c.name??c.customer_name??'Customer'}
 function customerBalance(c){return c.coin_balance??c.coins??c.balance??c.coin??0}
+function customerWhatsapp(c){return c.whatsapp??c.whatsapp_number??c.phone_number??c.phone??''}
 
 async function loadPricing(){
   const d=await api('/admin/pricing');
@@ -622,11 +623,10 @@ function renderCustomers(){
   $('customers').innerHTML=list.map(c=>{
     const id=customerId(c), name=customerName(c), bal=customerBalance(c);
     return '<article class="customer-card" data-id="'+esc(id)+'">'+
-      '<div class="customer-main"><div><div class="customer-name">'+esc(name)+'</div><div class="customer-meta">ID: '+esc(id)+'</div></div><div class="coin">'+esc(bal)+' COIN</div></div>'+
+      '<div class="customer-main"><div><div class="customer-name">'+esc(name)+'</div><div class="customer-meta">ID: '+esc(id)+'</div><div class="customer-meta">WhatsApp: '+(customerWhatsapp(c)?'<a href="https://wa.me/'+esc(String(customerWhatsapp(c)).replace(/[^0-9]/g,''))+'" target="_blank" rel="noopener noreferrer" style="color:var(--yellow)">'+esc(customerWhatsapp(c))+'</a>':'Belum diisi')+'</div></div><div class="coin">'+esc(bal)+' COIN</div></div>'+
       '<div class="customer-actions"><input class="username-edit" value="'+esc(name)+'" maxlength="100" placeholder="Username customer"><button class="btn secondary save-username">Simpan Username</button></div>'+
       '<div class="customer-actions">'+
       '<input class="adj" type="number" step="1" value="0" placeholder="+ / - COIN">'+
-      '<input class="desc" placeholder="Keterangan perubahan saldo">'+
       '<button class="btn primary adjust">Simpan COIN</button>'+
       '<button class="btn secondary key">Generate Key</button>'+
       '<button class="btn danger delete-customer">Hapus Customer</button>'+
@@ -636,10 +636,9 @@ function renderCustomers(){
 async function adjustCard(card){
   const id=card.dataset.id;
   const amount=Number(card.querySelector('.adj').value);
-  const desc=card.querySelector('.desc').value.trim()||null;
   if(!Number.isInteger(amount))throw new Error('COIN harus bilangan bulat');
   if(amount===0)throw new Error('Masukkan jumlah COIN selain 0');
-  await api('/admin/customers/'+encodeURIComponent(id)+'/coins',{method:'POST',body:JSON.stringify({amount,description:desc})});
+  await api('/admin/customers/'+encodeURIComponent(id)+'/coins',{method:'POST',body:JSON.stringify({amount})});
   setStatus('customerStatus','Saldo COIN customer berhasil diubah.','ok');
   await loadCustomers();
 }
