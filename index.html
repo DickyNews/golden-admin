@@ -730,6 +730,7 @@ async function openDashboard(){
   const results=await Promise.allSettled([
     loadPricing().catch(e=>{setStatus('pricingStatus','Gagal memuat pengaturan: '+e.message,'err');throw e}),
     loadCustomers().catch(e=>{setStatus('customerStatus','Gagal memuat customer: '+e.message,'err');throw e}),
+    loadSubscriptionAdmin().catch(e=>{setStatus('subscriptionAdminStatus','Gagal memuat langganan: '+e.message,'err');throw e}),
     loadFreeSettings().catch(e=>{setStatus('freeUsageStatus','Gagal memuat batas Free: '+e.message,'err');throw e}),
     loadFreeUsageHistory().catch(e=>{setStatus('freeUsageStatus','Gagal memuat riwayat Free: '+e.message,'err');throw e}),
     checkHealth(),
@@ -786,6 +787,7 @@ $('refreshAll').onclick=async()=>{
     const results=await Promise.allSettled([
       loadPricing(),
       loadCustomers(),
+      loadSubscriptionAdmin(),
       loadFreeSettings(),
       loadFreeUsageHistory(),
       checkHealth(),
