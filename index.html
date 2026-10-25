@@ -410,7 +410,7 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
     <div class="topbar-inner">
       <div class="brand">
         <h1>Dicky News Golden Admin</h1>
-        <p>Kontrol layanan, customer, COIN, key, dan koneksi API</p>
+        <p>Kontrol layanan, customer, paket langganan, key, dan koneksi API</p>
       </div>
       <div class="top-actions">
         <span class="badge ok" id="apiBadge">API ONLINE</span>
@@ -655,11 +655,9 @@ function renderCustomers(){
   $('customers').innerHTML=list.map(c=>{
     const id=customerId(c), name=customerName(c), bal=customerBalance(c);
     return '<article class="customer-card" data-id="'+esc(id)+'">'+
-      '<div class="customer-main"><div><div class="customer-name">'+esc(name)+'</div><div class="customer-meta">ID: '+esc(id)+'</div><div class="customer-meta">WhatsApp: '+(customerWhatsapp(c)?'<a href="https://wa.me/'+esc(String(customerWhatsapp(c)).replace(/[^0-9]/g,''))+'" target="_blank" rel="noopener noreferrer" style="color:var(--yellow)">'+esc(customerWhatsapp(c))+'</a>':'Belum diisi')+'</div></div><div class="coin">'+esc(bal)+' COIN</div></div>'+
+      '<div class="customer-main"><div><div class="customer-name">'+esc(name)+'</div><div class="customer-meta">ID: '+esc(id)+'</div><div class="customer-meta">WhatsApp: '+(customerWhatsapp(c)?'<a href="https://wa.me/'+esc(String(customerWhatsapp(c)).replace(/[^0-9]/g,''))+'" target="_blank" rel="noopener noreferrer" style="color:var(--yellow)">'+esc(customerWhatsapp(c))+'</a>':'Belum diisi')+'</div></div><div class="coin">Paket langganan dikelola di panel paket</div></div>'+
       '<div class="customer-actions"><input class="username-edit" value="'+esc(name)+'" maxlength="100" placeholder="Username customer"><button class="btn secondary save-username">Simpan Username</button></div>'+
       '<div class="customer-actions">'+
-      '<input class="adj" type="number" step="1" value="0" placeholder="+ / - COIN">'+
-      '<button class="btn primary adjust">Simpan COIN</button>'+
       '<button class="btn secondary key">Generate Key</button>'+
       '<button class="btn danger delete-customer">Hapus Customer</button>'+
       '</div><div class="key-box result-key hidden"></div></article>';
