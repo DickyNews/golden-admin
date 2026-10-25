@@ -566,6 +566,9 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
 
 <script>
 const API_BASE='https://103-235-74-92.sslip.io';
+// Initialize before dashboard boot and monitoring callbacks can run.
+let serverSettingsCache={refresh_seconds:10,cpu_warning_percent:80,ram_warning_percent:85,disk_warning_percent:85};
+let serverRefreshTimer=null;
 let selectedServiceCode='golden_hd_tiktok';
 const $=id=>document.getElementById(id);
 let customersCache=[];
@@ -996,8 +999,7 @@ $('loginView').classList.remove('hidden');
 })();
 checkHealth();
 
-let serverSettingsCache={refresh_seconds:10,cpu_warning_percent:80,ram_warning_percent:85,disk_warning_percent:85};
-let serverRefreshTimer=null;
+
 function formatDuration(seconds){let s=Math.max(0,Number(seconds)||0);const d=Math.floor(s/86400);s%=86400;const h=Math.floor(s/3600);s%=3600;const m=Math.floor(s/60);return (d?d+'d ':'')+h+'h '+m+'m'}
 function pct(v){return Number.isFinite(Number(v))?Math.max(0,Math.min(100,Number(v))):0}
 async function loadServerSettings(){
