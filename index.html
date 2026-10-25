@@ -486,6 +486,23 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
       <div id="freeUsageHistory" class="customer-list"><div class="note">Memuat riwayat penggunaan Free…</div></div>
     </section>
 
+    <div class="grid">
+<section class="card">
+        <div class="card-head">
+          <div><h2>Koneksi API</h2><p>Endpoint yang digunakan Admin Web.</p></div>
+          <span class="badge ok" id="healthBadge">CHECK</span>
+        </div>
+        <div class="api-list">
+          <div class="api-row"><span>API Base</span><b>HTTPS</b></div>
+          <div class="api-row"><span>Health</span><b id="healthText">Memeriksa...</b></div>
+          <div class="api-row"><span>Database</span><b id="databaseHealthText">Memeriksa...</b></div>
+          <div class="api-row"><span>Admin session</span><b id="sessionText">Aktif</b></div>
+          <div class="api-row"><span>Service code</span><b id="apiServiceCode">golden_hd_tiktok</b></div>
+        </div>
+        <div class="status" id="healthStatus"></div>
+      </section>
+    </div>
+
     <section class="card" id="customersPanel">
       <div class="card-head">
         <div><h2>Customer & COIN</h2><p>Buat akun customer, ubah saldo COIN, dan generate key akses.</p></div>
