@@ -716,12 +716,14 @@ async function generateCard(card){
   }
 }
 async function checkHealth(){
+  // /health/database is intentionally protected and returns 401 to unauthenticated requests.
+  // Use the authenticated admin status endpoint to read database state without weakening API access.
   const checks=await Promise.allSettled([
     fetch(API_BASE+'/health',{cache:'no-store',signal:AbortSignal.timeout(15000)}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error('API HTTP '+r.status);return d}),
-    fetch(API_BASE+'/health/database',{cache:'no-store',signal:AbortSignal.timeout(15000)}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error('Database HTTP '+r.status);return d})
+    api('/admin/server/status')
   ]);
   const apiOk=checks[0].status==='fulfilled';
-  const dbOk=checks[1].status==='fulfilled'&&checks[1].value.status==='ok';
+  const dbOk=checks[1].status==='fulfilled'&&checks[1].value.database==='active';
   $('apiBadge').textContent=apiOk?'API ONLINE':'API ERROR';$('apiBadge').className='badge '+(apiOk?'ok':'off');
   $('healthBadge').textContent=apiOk&&dbOk?'ONLINE':(apiOk?'DB ERROR':'ERROR');$('healthBadge').className='badge '+(apiOk&&dbOk?'ok':'off');
   $('healthText').textContent=apiOk?(checks[0].value.status||'OK'):'Gagal';
