@@ -495,6 +495,25 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
       </section>
     </div>
 
+    <section class="card" id="freeUsagePanel">
+      <div class="card-head">
+        <div><h2>Pengguna Free & Riwayat</h2><p>Bagian terpisah untuk penggunaan gratis, batas ukuran file, waktu, dan informasi perangkat yang dikirim browser.</p></div>
+        <span class="badge" id="freeUsageBadge">FREE</span>
+      </div>
+      <div class="grid">
+        <div class="field"><label>Maksimum file fitur Free (MB)</label><input id="freeMaxMb" type="number" min="1" max="4096" step="1" value="50"></div>
+        <div class="field"><label>Maksimum file layanan berbayar (MB)</label><input id="paidMaxMbSync" type="number" min="1" max="4096" step="1" value="1024" readonly><div class="status">Nilai ini mengikuti Pengaturan Layanan di bawah; ubah di sana untuk menyimpan batas layanan berbayar.</div></div>
+      </div>
+      <div class="actions"><button class="btn primary" id="saveFreeMaxMb">Simpan Batas Free</button><button class="btn secondary" id="refreshFreeUsage">Segarkan Riwayat Free</button></div>
+      <div class="status" id="freeUsageStatus"></div>
+      <div class="stat-grid">
+        <div class="stat"><small>Total penggunaan Free</small><b id="freeUsageTotal">—</b></div>
+        <div class="stat"><small>Batas Free aktif</small><b id="freeUsageLimit">—</b></div>
+        <div class="stat"><small>Catatan perangkat</small><b id="freeUsageDevices">—</b></div>
+      </div>
+      <div id="freeUsageHistory" class="customer-list"><div class="note">Memuat riwayat penggunaan Free…</div></div>
+    </section>
+
     <section class="card" id="customersPanel">
       <div class="card-head">
         <div><h2>Customer & COIN</h2><p>Buat akun customer, ubah saldo COIN, dan generate key akses.</p></div>
@@ -611,11 +630,11 @@ async function loadCustomers(){
   customersCache=getList(d);
   renderCustomers();
   renderHistoryCustomers();
-  setStatus('customerStatus',customersCache.length+' customer terbaca dari API.','ok');
+  setStatus('customerStatus',customersCache.filter(c=>!/^dicky news free guest$/i.test(customerName(c))).length+' customer terbaca dari API. Akun sistem Free dipisahkan di panel Pengguna Free.','ok');
 }
 function renderCustomers(){
   const q=$('customerSearch').value.trim().toLowerCase();
-  const list=customersCache.filter(c=>(customerName(c)+' '+customerId(c)).toLowerCase().includes(q));
+  const list=customersCache.filter(c=>!/^dicky news free guest$/i.test(customerName(c))&&(customerName(c)+' '+customerId(c)).toLowerCase().includes(q));
   if(!list.length){
     $('customers').innerHTML='<div class="note">'+(customersCache.length?'Tidak ada customer yang cocok dengan pencarian.':'Belum ada customer.')+'</div>';
     return;
@@ -878,7 +897,7 @@ $('customers').addEventListener('click',async e=>{
       if(!confirm('Konfirmasi terakhir: data customer ID '+id+' akan dihapus permanen dari database. Lanjutkan?'))return;
       deleteButton.disabled=true;deleteButton.textContent='Menghapus...';
       const d=await api('/admin/customers/'+encodeURIComponent(id),{method:'DELETE'});
-      await Promise.all([loadCustomers(),loadStorageStats()]);
+      await Promise.all([loadCustomers(),loadFreeSettings(),loadFreeUsageHistory(),loadStorageStats()]);
       const detail=d.partial_cleanup
         ?'Customer dan data database dihapus, tetapi sebagian file gagal dibersihkan. Periksa log/server.'
         :'Customer, riwayat, transaksi, sesi, API key, dan file terkait yang tervalidasi telah diproses backend.';
@@ -892,6 +911,69 @@ $('customers').addEventListener('click',async e=>{
   }catch(err){setStatus('customerStatus','Gagal menghapus/mengubah customer: '+err.message,'err')}
   finally{document.querySelectorAll('.customer-card button').forEach(b=>{if(!b.classList.contains('delete-customer')||b.textContent!=='Menghapus...')b.disabled=false})}
 });
+
+function formatLocalDate(value){
+  if(!value)return 'Waktu tidak tersedia';
+  const d=new Date(value);
+  return Number.isNaN(d.getTime())?'Waktu tidak tersedia':d.toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'medium',timeZone:'Asia/Jakarta'})+' WIB';
+}
+function formatDevice(ua){
+  const s=String(ua||'Unknown');
+  let device='Perangkat tidak dikenali';
+  if(/Android/i.test(s))device='Android';
+  else if(/iPhone/i.test(s))device='iPhone';
+  else if(/iPad/i.test(s))device='iPad';
+  else if(/Windows NT/i.test(s))device='Windows';
+  else if(/Mac OS X/i.test(s))device='macOS';
+  else if(/Linux/i.test(s))device='Linux';
+  const browser=/Edg\//i.test(s)?'Edge':/Firefox\//i.test(s)?'Firefox':/Chrome\//i.test(s)?'Chrome':/Safari\//i.test(s)&&!/Chrome\//i.test(s)?'Safari':'Browser lain';
+  return device+' · '+browser;
+}
+async function loadFreeSettings(){
+  const d=await api('/admin/free-inject/settings');
+  $('freeMaxMb').value=Number(d.max_file_size_mb||50);
+  $('freeUsageLimit').textContent=Number(d.max_file_size_mb||50)+' MB';
+  $('paidMaxMbSync').value=$('maxMb').value||'1024';
+}
+async function loadFreeUsageHistory(){
+  const d=await api('/admin/free-inject/history?limit=100&offset=0');
+  const items=Array.isArray(d.items)?d.items:[];
+  $('freeUsageTotal').textContent=String(d.total??items.length);
+  $('freeUsageDevices').textContent=String(new Set(items.map(x=>formatDevice(x.user_agent))).size);
+  $('freeUsageLimit').textContent=$('freeMaxMb').value+' MB';
+  if(!items.length){
+    $('freeUsageHistory').innerHTML='<div class="note">Belum ada catatan penggunaan Free. Penggunaan baru akan tercatat mulai saat fitur ini diterapkan.</div>';
+    return;
+  }
+  $('freeUsageHistory').innerHTML=items.map(x=>'<article class="customer-card">'+
+    '<div class="customer-main"><div><div class="customer-name">Job #'+esc(x.job_id)+' · '+esc(x.filename||'File tidak diketahui')+'</div>'+
+    '<div class="customer-meta">Tanggal & waktu: '+esc(formatLocalDate(x.created_at))+'</div>'+
+    '<div class="customer-meta">Perangkat: '+esc(formatDevice(x.user_agent))+'</div>'+
+    '<div class="customer-meta">Browser info: '+esc(x.user_agent||'Unknown')+'</div>'+
+    '<div class="customer-meta">Ukuran file: '+esc(x.input_size_mb??0)+' MB · Status: '+esc(x.status||'unknown')+'</div>'+
+    (x.progress_label?'<div class="customer-meta">Progres: '+esc(x.progress_label)+(x.progress_percent!=null?' ('+esc(x.progress_percent)+'%)':'')+'</div>':'')+
+    (x.error?'<div class="status err-text">Keterangan error: '+esc(x.error)+'</div>':'')+
+    '</div><span class="badge '+(x.status==='completed'?'ok':(['failed','error'].includes(String(x.status).toLowerCase())?'off':'') )+'">'+esc(String(x.status||'unknown').toUpperCase())+'</span></div></article>').join('');
+}
+$('saveFreeMaxMb').onclick=async()=>{
+  const mb=Number($('freeMaxMb').value);
+  if(!Number.isInteger(mb)||mb<1||mb>4096){setStatus('freeUsageStatus','Masukkan batas Free 1–4096 MB.','err');return}
+  const b=$('saveFreeMaxMb');b.disabled=true;
+  try{
+    const d=await api('/admin/free-inject/settings',{method:'PUT',body:JSON.stringify({max_file_size_mb:mb})});
+    $('freeMaxMb').value=d.max_file_size_mb;
+    $('freeUsageLimit').textContent=d.max_file_size_mb+' MB';
+    await loadFreeUsageHistory();
+    setStatus('freeUsageStatus','Batas Free tersimpan di backend: '+d.max_file_size_mb+' MB. Upload baru langsung memakai batas ini.','ok');
+  }catch(e){setStatus('freeUsageStatus','Gagal menyimpan batas Free: '+e.message,'err')}
+  finally{b.disabled=false}
+};
+$('refreshFreeUsage').onclick=async()=>{
+  const b=$('refreshFreeUsage');b.disabled=true;
+  try{await Promise.all([loadFreeSettings(),loadFreeUsageHistory()]);setStatus('freeUsageStatus','Pengaturan dan riwayat Free berhasil disegarkan.','ok')}
+  catch(e){setStatus('freeUsageStatus','Gagal menyegarkan riwayat Free: '+e.message,'err')}
+  finally{b.disabled=false}
+};
 
 // SECURITY: every fresh page load must start logged out.
 // Invalidate any prior server-side admin session; never auto-restore the dashboard.
