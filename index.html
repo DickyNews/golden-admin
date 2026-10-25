@@ -727,7 +727,6 @@ async function openDashboard(){
   $('dashboard').classList.add('ready');
   $('loginView').classList.add('hidden');
   const results=await Promise.allSettled([
-    loadPricing().catch(e=>{setStatus('pricingStatus','Gagal memuat pengaturan: '+e.message,'err');throw e}),
     loadCustomers().catch(e=>{setStatus('customerStatus','Gagal memuat customer: '+e.message,'err');throw e}),
     loadSubscriptionAdmin().catch(e=>{setStatus('subscriptionAdminStatus','Gagal memuat langganan: '+e.message,'err');throw e}),
     loadFreeSettings().catch(e=>{setStatus('freeUsageStatus','Gagal memuat batas Free: '+e.message,'err');throw e}),
@@ -759,21 +758,6 @@ $('logout').onclick=async()=>{
   try{await api('/admin/logout',{method:'POST'})}catch{}
   location.reload();
 };
-$('save').onclick=async()=>{
-  try{
-    const d=await api('/admin/pricing');
-    const services=Array.isArray(d.services)?d.services:[];
-    const s=services.find(x=>x.service_code===selectedServiceCode);
-    if(!s)throw new Error('Layanan '+selectedServiceCode+' tidak ditemukan di backend');
-    const coin=Number($('coin').value), mb=Number($('maxMb').value);
-    if(!Number.isInteger(coin)||coin<0)throw new Error('Harga COIN tidak valid');
-    if(!Number.isInteger(mb)||mb<1)throw new Error('Ukuran maksimum tidak valid');
-    await api('/admin/pricing/'+encodeURIComponent(s.id),{method:'PUT',body:JSON.stringify({coin_cost:coin,max_file_size_bytes:mb*1048576,is_active:$('active').value==='true'})});
-    await loadPricing();
-    setStatus('pricingStatus','Pengaturan berhasil disimpan ke backend.','ok');
-  }catch(e){setStatus('pricingStatus',e.message,'err')}
-};
-$('serviceSelect').onchange=()=>{selectedServiceCode=$('serviceSelect').value;loadPricing().catch(e=>setStatus('pricingStatus',e.message,'err'))};
 $('refreshAll').onclick=async()=>{
   const button=$('refreshAll');
   if(button.disabled)return;
@@ -784,7 +768,6 @@ $('refreshAll').onclick=async()=>{
   setStatus('serverUpdated','Refresh dimulai…','info');
   try{
     const results=await Promise.allSettled([
-      loadPricing(),
       loadCustomers(),
       loadSubscriptionAdmin(),
       loadFreeSettings(),
@@ -793,12 +776,12 @@ $('refreshAll').onclick=async()=>{
       loadStorageStats(),
       (async()=>{await loadServerSettings();await loadServerStatus()})()
     ]);
-    const names=['Pengaturan layanan','Customer','Koneksi API','Storage','Monitoring server'];
-    results.forEach((r,i)=>{if(r.status==='rejected')setStatus(i===4?'serverUpdated':i===0?'pricingStatus':i===1?'customerStatus':i===3?'storageStatus':'healthStatus',names[i]+' gagal diperbarui: '+(r.reason?.message||'Kesalahan tidak diketahui'),'err')});
+    const names=['Customer','Paket dan langganan','Pengaturan Free','Riwayat Free','Koneksi API','Storage','Monitoring server'];
+    results.forEach((r,i)=>{if(r.status==='rejected')setStatus(i===6?'serverUpdated':i===0?'customerStatus':i===5?'storageStatus':i===4?'healthStatus':'subscriptionAdminStatus',names[i]+' gagal diperbarui: '+(r.reason?.message||'Kesalahan tidak diketahui'),'err')});
     const rejected=results.filter(r=>r.status==='rejected').length;
     const healthFailed=$('apiBadge').classList.contains('off')||$('healthBadge').classList.contains('off');
     const storageFailed=$('storageStatus').classList.contains('err-text');
-    const serverFailed=results[4].status==='rejected'||$('serverLiveBadge').textContent==='GAGAL MEMUAT';
+    const serverFailed=results[6].status==='rejected'||$('serverLiveBadge').textContent==='GAGAL MEMUAT';
     const failed=rejected+(healthFailed?1:0)+(storageFailed?1:0)+(serverFailed?1:0);
     if(failed){
       setStatus('systemStatus','Pembaruan selesai dengan '+failed+' bagian bermasalah. Lihat status pada panel terkait; data yang gagal tidak dianggap berhasil.','err');
