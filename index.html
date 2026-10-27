@@ -756,6 +756,7 @@ async function openDashboard(){
   const results=await Promise.allSettled([
     loadCustomers().catch(e=>{setStatus('customerStatus','Gagal memuat customer: '+e.message,'err');throw e}),
     loadSubscriptionAdmin().catch(e=>{setStatus('subscriptionAdminStatus','Gagal memuat langganan: '+e.message,'err');throw e}),
+    loadVipPlansAdmin().catch(e=>{setStatus('vipAdminStatus','Gagal memuat paket VIP: '+e.message,'err');throw e}),
     loadFreeSettings().catch(e=>{setStatus('freeUsageStatus','Gagal memuat batas Free: '+e.message,'err');throw e}),
     loadFreeUsageHistory().catch(e=>{setStatus('freeUsageStatus','Gagal memuat riwayat Free: '+e.message,'err');throw e}),
     checkHealth(),
@@ -797,13 +798,14 @@ $('refreshAll').onclick=async()=>{
     const results=await Promise.allSettled([
       loadCustomers(),
       loadSubscriptionAdmin(),
+      loadVipPlansAdmin(),
       loadFreeSettings(),
       loadFreeUsageHistory(),
       checkHealth(),
       loadStorageStats(),
       (async()=>{await loadServerSettings();await loadServerStatus()})()
     ]);
-    const names=['Customer','Paket dan langganan','Pengaturan Free','Riwayat Free','Koneksi API','Storage','Monitoring server'];
+    const names=['Customer','Paket dan langganan','Paket VIP','Pengaturan Free','Riwayat Free','Koneksi API','Storage','Monitoring server'];
     results.forEach((r,i)=>{if(r.status==='rejected')setStatus(i===6?'serverUpdated':i===0?'customerStatus':i===5?'storageStatus':i===4?'healthStatus':'subscriptionAdminStatus',names[i]+' gagal diperbarui: '+(r.reason?.message||'Kesalahan tidak diketahui'),'err')});
     const rejected=results.filter(r=>r.status==='rejected').length;
     const healthFailed=$('apiBadge').classList.contains('off')||$('healthBadge').classList.contains('off');
