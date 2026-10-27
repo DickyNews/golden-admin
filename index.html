@@ -112,8 +112,8 @@ body::before,body::after{
   content:"";position:fixed;pointer-events:none;z-index:0;width:36vw;height:36vw;min-width:240px;min-height:240px;
   border-radius:50%;filter:blur(90px);opacity:.12;will-change:transform;
 }
-body::before{left:-16vw;top:8vh;background:#20dfff;animation:adminNebulaA 18s ease-in-out infinite alternate}
-body::after{right:-18vw;bottom:0;background:#8a5cff;animation:adminNebulaB 22s ease-in-out infinite alternate}
+body::before{left:-16vw;top:8vh;background:#20dfff}
+body::after{right:-18vw;bottom:0;background:#8a5cff}
 #loginView,.app{position:relative;z-index:1}
 .topbar{background:rgba(5,8,14,.82);border-bottom-color:rgba(98,243,255,.2);box-shadow:0 8px 32px rgba(0,0,0,.2)}
 .brand h1{letter-spacing:-.045em;text-shadow:0 0 24px rgba(98,243,255,.14)}
@@ -122,10 +122,8 @@ body::after{right:-18vw;bottom:0;background:#8a5cff;animation:adminNebulaB 22s e
   background:linear-gradient(145deg,rgba(16,25,39,.92),rgba(9,14,23,.92));
   border:1px solid rgba(98,243,255,.17);border-radius:18px;
   box-shadow:0 12px 38px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.035);
-  animation:adminCardBreathe 7s ease-in-out infinite;
   transition:border-color .22s ease,box-shadow .22s ease,transform .22s ease;
 }
-.card:nth-of-type(2n),.grid>.card:nth-child(2n){animation-delay:-2.7s}
 .card:hover,.login-card:hover{border-color:rgba(98,243,255,.42);box-shadow:0 16px 42px rgba(0,0,0,.3),0 0 22px rgba(98,243,255,.055)}
 .card-head h2{letter-spacing:-.025em}
 .badge{background:rgba(98,243,255,.1);color:var(--neon-cyan);border:1px solid rgba(98,243,255,.24);box-shadow:0 0 18px rgba(98,243,255,.05)}
@@ -140,9 +138,7 @@ input:focus,select:focus{border-color:var(--neon-cyan);box-shadow:0 0 0 3px rgba
 .btn{
   position:relative;isolation:isolate;overflow:hidden;border-radius:11px;letter-spacing:.005em;
   transition:transform .2s ease,box-shadow .2s ease,background .2s ease,border-color .2s ease;
-  animation:adminButtonIdle 3.6s ease-in-out infinite;
 }
-.btn::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(110deg,transparent 15%,rgba(255,255,255,.17) 48%,transparent 78%);transform:translateX(-125%);animation:adminButtonSweep 6s ease-in-out infinite}
 .btn:hover{transform:translateY(-2px);box-shadow:0 0 0 1px rgba(98,243,255,.3),0 8px 26px rgba(98,243,255,.12)}
 .btn:active{transform:translateY(0) scale(.985)}
 .btn:disabled{animation:none;box-shadow:none}
@@ -160,11 +156,6 @@ input:focus,select:focus{border-color:var(--neon-cyan);box-shadow:0 0 0 3px rgba
 .api-row{border-bottom-color:rgba(98,243,255,.12)}
 :where(button,a,input,textarea,select,[tabindex]):focus-visible{outline:2px solid #62f3ff!important;outline-offset:3px;box-shadow:0 0 0 4px rgba(98,243,255,.12)}
 button,a{ -webkit-tap-highlight-color:rgba(98,243,255,.16)}
-@keyframes adminNebulaA{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(8vw,5vh,0) scale(1.12)}}
-@keyframes adminNebulaB{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-7vw,-6vh,0) scale(1.15)}}
-@keyframes adminCardBreathe{0%,100%{box-shadow:0 12px 38px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.035)}50%{box-shadow:0 12px 38px rgba(0,0,0,.22),0 0 18px rgba(98,243,255,.035),inset 0 1px rgba(255,255,255,.04)}}
-@keyframes adminButtonIdle{0%,100%{box-shadow:0 0 0 rgba(98,243,255,0)}50%{box-shadow:0 0 15px rgba(98,243,255,.075)}}
-@keyframes adminButtonSweep{0%,72%,100%{transform:translateX(-125%)}84%{transform:translateX(125%)}}
 @media(max-width:760px){
   .app{width:min(100% - 18px,1180px)}
   .card,.login-card{border-radius:15px}
@@ -1063,7 +1054,24 @@ $('loginView').classList.remove('hidden');
     setStatus('loginStatus','Halaman tetap terkunci. Namun sesi server lama belum dapat dikonfirmasi berakhir: '+e.message,'err');
   }
 })();
-checkHealth();
+// Public health is checked without making authenticated admin requests before login.
+(async()=>{
+ try{
+  const r=await fetch(API_BASE+'/health',{cache:'no-store',signal:AbortSignal.timeout(15000)});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  $('apiBadge').textContent='API ONLINE';$('apiBadge').className='badge ok';
+  $('healthBadge').textContent='LOGIN DIPERLUKAN';$('healthBadge').className='badge';
+  $('healthText').textContent='API merespons';
+  $('databaseHealthText').textContent='Periksa setelah login admin';
+  setStatus('healthStatus','API dapat dijangkau. Status database akan diperiksa setelah login admin.','info');
+ }catch(e){
+  $('apiBadge').textContent='API ERROR';$('apiBadge').className='badge off';
+  $('healthBadge').textContent='ERROR';$('healthBadge').className='badge off';
+  $('healthText').textContent='Tidak terjangkau';
+  $('databaseHealthText').textContent='Belum diperiksa';
+  setStatus('healthStatus','Pemeriksaan API gagal: '+e.message,'err');
+ }
+})();
 
 
 function formatDuration(seconds){let s=Math.max(0,Number(seconds)||0);const d=Math.floor(s/86400);s%=86400;const h=Math.floor(s/3600);s%=3600;const m=Math.floor(s/60);return (d?d+'d ':'')+h+'h '+m+'m'}
@@ -1072,7 +1080,19 @@ async function loadServerSettings(){
  const d=await api('/admin/server/settings');serverSettingsCache=d.settings||serverSettingsCache;
  $('serverRefreshSeconds').value=String(serverSettingsCache.refresh_seconds);$('cpuWarning').value=serverSettingsCache.cpu_warning_percent;$('ramWarning').value=serverSettingsCache.ram_warning_percent;$('diskWarning').value=serverSettingsCache.disk_warning_percent;applyServerRefreshTimer();
 }
-function applyServerRefreshTimer(){if(serverRefreshTimer)clearInterval(serverRefreshTimer);serverRefreshTimer=setInterval(()=>loadServerStatus().catch(e=>setStatus('serverUpdated','Pembaruan otomatis gagal: '+e.message,'err')),Number(serverSettingsCache.refresh_seconds||10)*1000)}
+function applyServerRefreshTimer(){
+ if(serverRefreshTimer)clearInterval(serverRefreshTimer);
+ serverRefreshTimer=setInterval(()=>{
+  // Do not make authenticated API calls while logged out or while the tab is in the background.
+  if(!$('dashboard').classList.contains('ready')||document.visibilityState!=='visible')return;
+  loadServerStatus().catch(e=>setStatus('serverUpdated','Pembaruan otomatis gagal: '+e.message,'err'));
+ },Math.max(5,Number(serverSettingsCache.refresh_seconds||10))*1000);
+}
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible'&&$('dashboard').classList.contains('ready')){
+  loadServerStatus().catch(e=>setStatus('serverUpdated','Pembaruan otomatis gagal: '+e.message,'err'));
+ }
+});
 async function loadServerStatus(){
  $('serverLiveBadge').textContent='MEMUAT DATA…';
  $('serverLiveBadge').className='badge';
