@@ -545,8 +545,8 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
    <div class="field"><label for="vipActivationCustomer">Pilih customer yang akan diaktifkan</label><select id="vipActivationCustomer"><option value="">Memuat daftar customer…</option></select></div>
    <div class="field"><label for="vipActivationPlan">Pilih paket VIP</label><select id="vipActivationPlan"><option value="">Memuat paket VIP…</option></select></div>
   </div>
-  <div class="note">Pembuatan user dan generate key menggunakan API customer yang sudah tersedia. Penetapan paket VIP memerlukan endpoint aktivasi VIP di backend; tombol aktivasi tetap dikunci sampai endpoint itu dibuat agar tidak salah mengaktifkan paket reguler.</div>
-  <div class="actions"><button class="btn primary" id="activateVipForCustomer" type="button" disabled>Aktifkan Paket VIP</button><button class="btn secondary" id="refreshVipActivation" type="button">Segarkan Pilihan</button></div>
+  <div class="note">Buat user VIP baru sekaligus generate key dan aktifkan paket, atau pilih customer yang sudah ada untuk mengganti langganannya ke VIP. Masa aktif, batas ukuran, dan status langganan diperiksa oleh backend saat upload.</div>
+  <div class="actions"><button class="btn primary" id="activateVipForCustomer" type="button">Aktifkan Paket VIP</button><button class="btn secondary" id="refreshVipActivation" type="button">Segarkan Pilihan</button></div>
   <div class="status" id="vipNewCustomerStatus"></div>
   <div class="status" id="vipActivationStatus"></div>
  </section>
@@ -1124,23 +1124,23 @@ $('createVipCustomer').onclick=async()=>{
  const button=$('createVipCustomer');
  const username=$('vipNewCustomerName').value.trim();
  const whatsapp=$('vipNewCustomerWhatsapp').value.trim()||null;
+ const vipPlanId=$('vipActivationPlan').value;
  try{
   if(username.length<2)throw new Error('Username minimal 2 karakter.');
+  if(!vipPlanId)throw new Error('Pilih paket VIP terlebih dahulu.');
   if(managementCustomersCache.some(c=>String(c.name||'').trim().toLowerCase()===username.toLowerCase()))throw new Error('Username sudah digunakan.');
-  if(!confirm('Buat akun baru '+username+' dan generate key permanen?'))return;
-  button.disabled=true;button.textContent='Membuat user…';
-  const created=await api('/admin/customers',{method:'POST',body:JSON.stringify({name:username,whatsapp})});
-  const id=created.customer?.id;
-  if(!id)throw new Error('Server tidak mengembalikan ID customer.');
-  let keyData;
-  try{keyData=await api('/admin/customers/'+encodeURIComponent(id)+'/keys',{method:'POST',body:JSON.stringify({})})}
-  catch(e){await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin()]);throw new Error('User berhasil dibuat (ID '+id+'), tetapi generate key gagal: '+e.message)}
+  const plan=vipPlansCache.find(p=>String(p.id)===String(vipPlanId));
+  if(!confirm('Buat akun '+username+', generate key, dan aktifkan paket VIP '+(plan?.name||'pilihan')+'?'))return;
+  button.disabled=true;button.textContent='Membuat akun dan mengaktifkan VIP…';
+  const result=await api('/admin/vip/customers',{method:'POST',body:JSON.stringify({username,whatsapp,vip_plan_id:Number(vipPlanId)})});
+  const id=result.customer?.id,key=result.key||'';
+  if(!id||!key)throw new Error('Respons server tidak lengkap: akun/key tidak terkonfirmasi.');
   $('vipNewCustomerName').value='';$('vipNewCustomerWhatsapp').value='';
-  await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin()]);
+  await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin(),loadVipPlansAdmin()]);
   $('vipActivationCustomer').value=String(id);
-  const key=keyData.key||'';
-  setStatus('vipNewCustomerStatus','User '+username+' berhasil dibuat (ID '+id+'). Key permanen: '+(key||'sudah diproses server')+'. Simpan key ini untuk user. Paket VIP belum aktif sampai endpoint aktivasi VIP tersedia.','ok');
- }catch(e){setStatus('vipNewCustomerStatus','Gagal membuat user: '+e.message,'err')}
+  setStatus('vipNewCustomerStatus','Akun VIP '+username+' berhasil dibuat (ID '+id+'), key permanen: '+key+'. Paket '+(plan?.name||'VIP')+' aktif. Simpan key ini dengan aman.','ok');
+  setStatus('vipActivationStatus','Aktivasi VIP berhasil untuk akun baru '+username+'.','ok');
+ }catch(e){setStatus('vipNewCustomerStatus','Gagal membuat akun VIP: '+e.message,'err')}
  finally{button.disabled=false;button.textContent='Buat User VIP Baru & Generate Key'}
 };
 $('refreshVipActivation').onclick=async()=>{
@@ -1150,8 +1150,21 @@ $('refreshVipActivation').onclick=async()=>{
   setStatus('vipActivationStatus','Pilihan customer dan paket VIP diperbarui.','info');
  }catch(e){setStatus('vipActivationStatus','Gagal memuat pilihan: '+e.message,'err')}
 };
-$('activateVipForCustomer').onclick=()=>{
- setStatus('vipActivationStatus','Belum ada perubahan yang dilakukan. Backend perlu endpoint aktivasi VIP customer terlebih dahulu.','err');
+$('activateVipForCustomer').onclick=async()=>{
+ const button=$('activateVipForCustomer');
+ const customerId=$('vipActivationCustomer').value;
+ const vipPlanId=$('vipActivationPlan').value;
+ try{
+  if(!customerId)throw new Error('Pilih customer terlebih dahulu.');
+  if(!vipPlanId)throw new Error('Pilih paket VIP terlebih dahulu.');
+  const plan=vipPlansCache.find(p=>String(p.id)===String(vipPlanId));
+  if(!confirm('Aktifkan/ganti langganan customer ID '+customerId+' ke paket VIP '+(plan?.name||'pilihan')+'? Paket reguler aktif sebelumnya akan digantikan.'))return;
+  button.disabled=true;button.textContent='Mengaktifkan VIP…';
+  const result=await api('/admin/customers/'+encodeURIComponent(customerId)+'/vip-subscription',{method:'POST',body:JSON.stringify({vip_plan_id:Number(vipPlanId)})});
+  await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin()]);
+  setStatus('vipActivationStatus','Paket VIP '+(result.subscription?.plan_name||plan?.name||'')+' berhasil diaktifkan untuk '+(result.customer?.name||('customer ID '+customerId))+'.','ok');
+ }catch(e){setStatus('vipActivationStatus','Gagal mengaktifkan VIP: '+e.message,'err')}
+ finally{button.disabled=false;button.textContent='Aktifkan Paket VIP'}
 };
 async function loadVipPlansAdmin(){
  const d=await api('/admin/vip/plans'),plans=Array.isArray(d.plans)?d.plans:[];
