@@ -481,7 +481,7 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
           </select>
         </div>
         <div class="field">
-          <label for="coin">Biaya per job (COIN)</label>
+          <label for="coin">Biaya COIN legacy per job</label>
           <input id="coin" type="number" min="0" max="1000000000" step="1" inputmode="numeric">
         </div>
         <div class="field">
@@ -505,7 +505,7 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
         <button class="btn secondary" id="reloadPricing" type="button">Muat Ulang dari Server</button>
       </div>
       <div class="status" id="pricingStatus"></div>
-      <div class="note">Batas ukuran diterapkan backend pada upload baru. Menonaktifkan layanan tidak menghentikan worker atau mengubah job yang sudah berjalan. Panel ini hanya mengatur <code>golden_hd_tiktok</code> (SDR); layanan HDR yang diarsipkan tidak diubah.</div>
+      <div class="note">Batas ukuran layanan menjadi batas atas upload; batas paket langganan aktif tetap berlaku dan dapat lebih kecil. Sistem customer saat ini memakai paket/kuota langganan, sehingga biaya COIN di sini adalah nilai legacy dan tidak menggantikan harga, kuota proses, atau masa aktif paket. Menonaktifkan layanan memblokir job baru, bukan menghentikan job yang sedang berjalan. Panel ini hanya mengatur <code>golden_hd_tiktok</code> (SDR); layanan HDR yang diarsipkan tidak diubah.</div>
     </section>
 
     <section class="card" id="serverSettings">
@@ -716,7 +716,7 @@ async function loadPricing(){
   $('serviceStatus').textContent=s.is_active?'LAYANAN AKTIF':'LAYANAN NONAKTIF';
   $('serviceStatus').className='badge '+(s.is_active?'ok':'off');
   $('statService').textContent=(s.name||s.service_code)+' (SDR)';
-  $('statCoin').textContent=Number(s.coin_cost??0)+' COIN / job';
+  $('statCoin').textContent='Paket langganan';
   $('statMax').textContent=Math.round(Number(s.max_file_size_bytes??0)/1048576)+' MB';
   setStatus('pricingStatus','Konfigurasi SDR dimuat dari server. Terakhir diperbarui: '+(s.updated_at?formatLocalDate(s.updated_at):'waktu tidak tersedia')+'.','ok');
 }
