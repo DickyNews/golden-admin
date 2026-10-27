@@ -570,6 +570,16 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
  <div id="subscriptionPlansAdmin" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px"><p>Memuat konfigurasi paket…</p></div>
  <div class="divider" style="margin:20px 0"></div>
  <div class="status" id="subscriptionAdminStatus"></div>
+
+<section class="card" id="vipSubscriptionControl" style="margin:20px 0">
+ <div class="card-head">
+  <div><h2>Pengaturan Paket VIP Unlimited</h2><p>Atur nama, harga, batas ukuran video, masa aktif, urutan, dan status paket VIP. Perubahan disimpan melalui API dan dibaca oleh web customer.</p></div>
+  <button class="btn secondary" id="refreshVipPlans" type="button">Segarkan Paket VIP</button>
+ </div>
+ <div id="vipPlansAdmin" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px"><p>Memuat konfigurasi paket VIP…</p></div>
+ <div class="divider" style="margin:20px 0"></div>
+ <div class="status" id="vipAdminStatus"></div>
+</section>
 </section>
 
 
@@ -1072,6 +1082,24 @@ async function loadServerStatus(){
 }
 $('saveServerSettings').onclick=async()=>{const data={refresh_seconds:Number($('serverRefreshSeconds').value),cpu_warning_percent:Number($('cpuWarning').value),ram_warning_percent:Number($('ramWarning').value),disk_warning_percent:Number($('diskWarning').value)};try{$('saveServerSettings').disabled=true;const d=await api('/admin/server/settings',{method:'PUT',body:JSON.stringify(data)});serverSettingsCache=d.settings;await loadServerSettings();await loadServerStatus();$('settingsSavedBadge').textContent='TERSIMPAN';$('settingsSavedBadge').className='badge ok';setStatus('serverSettingsStatus','Pengaturan tersimpan di server dan interval refresh diperbarui.','ok')}catch(e){setStatus('serverSettingsStatus','Gagal menyimpan: '+e.message,'err')}finally{$('saveServerSettings').disabled=false}};
 
+
+
+let vipPlansCache=[];
+async function loadVipPlansAdmin(){
+ const d=await api('/admin/vip/plans'),plans=Array.isArray(d.plans)?d.plans:[];
+ vipPlansCache=plans;
+ $('vipPlansAdmin').innerHTML=plans.length?plans.map(p=>'<article class="card" style="padding:14px;min-width:0" data-vip-plan-id="'+p.id+'"><h3>'+esc(p.name)+'</h3><div class="field"><label>Nama paket VIP</label><input data-vip-f="name" value="'+esc(p.name)+'"></div><div class="field"><label>Harga (Rupiah)</label><input data-vip-f="price_idr" type="number" min="0" step="1000" value="'+Number(p.price_idr||0)+'"></div><div class="field"><label>Maks. ukuran video (MB)</label><input data-vip-f="max_file_size_mb" type="number" min="1" max="4096" step="1" value="'+Number(p.max_file_size_mb||1)+'"></div><div class="field"><label>Masa aktif (hari)</label><input data-vip-f="duration_days" type="number" min="1" max="3650" value="'+Number(p.duration_days||30)+'"></div><div class="field"><label>Urutan tampil</label><input data-vip-f="sort_order" type="number" min="1" value="'+Number(p.sort_order||1)+'"></div><div class="field"><label>Status paket</label><select data-vip-f="is_active"><option value="true" '+(p.is_active?'selected':'')+'>Aktif</option><option value="false" '+(!p.is_active?'selected':'')+'>Nonaktif</option></select></div><button class="btn primary save-vip-plan" type="button">Simpan Paket VIP</button></article>').join(''):'<p>API tidak mengembalikan paket VIP. Periksa endpoint /admin/vip/plans.</p>';
+}
+$('refreshVipPlans').onclick=()=>loadVipPlansAdmin().then(()=>setStatus('vipAdminStatus','Daftar paket VIP diperbarui dari server.','ok')).catch(e=>setStatus('vipAdminStatus','Gagal memuat paket VIP: '+e.message,'err'));
+$('vipPlansAdmin').addEventListener('click',async e=>{
+ const b=e.target.closest('.save-vip-plan');if(!b)return;
+ const card=b.closest('[data-vip-plan-id]'),id=card.dataset.vipPlanId;
+ const val=f=>card.querySelector('[data-vip-f="'+f+'"]').value;
+ const data={name:val('name'),price_idr:Number(val('price_idr')),max_file_size_mb:Number(val('max_file_size_mb')),duration_days:Number(val('duration_days')),sort_order:Number(val('sort_order')),is_active:val('is_active')==='true'};
+ b.disabled=true;
+ try{await api('/admin/vip/plans/'+encodeURIComponent(id),{method:'PUT',body:JSON.stringify(data)});await loadVipPlansAdmin();setStatus('vipAdminStatus','Pengaturan paket VIP tersimpan di server.','ok')}
+ catch(err){setStatus('vipAdminStatus','Gagal menyimpan paket VIP: '+err.message,'err')}finally{b.disabled=false}
+});
 
 async function loadSubscriptionPlansAdmin(){
  const d=await api('/admin/subscription/plans'),plans=Array.isArray(d.plans)?d.plans:[];
