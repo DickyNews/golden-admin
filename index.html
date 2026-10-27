@@ -385,6 +385,28 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
+
+/* Independent admin workspace tabs */
+.admin-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;padding:8px;border:1px solid var(--line);border-radius:15px;background:rgba(12,15,22,.96);position:sticky;top:68px;z-index:15;backdrop-filter:blur(14px)}
+.admin-tab{flex:1 1 130px;min-height:44px;padding:10px 13px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--muted);font-weight:800;text-align:center;cursor:pointer;white-space:nowrap}
+.admin-tab:hover{border-color:var(--line2);color:var(--text)}
+.admin-tab[aria-selected="true"]{color:#061014;background:linear-gradient(110deg,#25F4EE,#8cfaf5);border-color:rgba(37,244,238,.7);box-shadow:0 0 18px rgba(37,244,238,.1)}
+.admin-tab:focus-visible{outline:2px solid var(--tiktok-cyan);outline-offset:3px}
+.admin-tab-panel{min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.admin-tab-panel[hidden]{display:none!important}
+.admin-tab-panel>.card,.admin-tab-panel>.grid{min-width:0;margin:0}
+.admin-tab-panel>.card{padding:16px;border-radius:14px;box-shadow:none}
+.admin-tab-panel>.card:hover{transform:none;box-shadow:none}
+.admin-tab-panel>.card.full-panel,.admin-tab-panel>.grid.full-panel{grid-column:1/-1}
+.admin-tabs-summary{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 12px;color:var(--muted);font-size:12px}
+.admin-tabs-summary strong{color:var(--text);font-size:14px}
+@media(max-width:760px){
+ .admin-tabs{top:58px;gap:6px;padding:6px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .admin-tab{min-width:0;width:100%;font-size:12px;padding:9px 5px}
+ .admin-tab-panel{grid-template-columns:minmax(0,1fr)}
+ .admin-tab-panel>.card.full-panel,.admin-tab-panel>.grid.full-panel{grid-column:auto}
+}
+
 </style>
 <style id="account-management-responsive">
 @media(max-width:760px){
@@ -1199,6 +1221,47 @@ $('subscriptionPlansAdmin').addEventListener('click',async e=>{
  try{await api('/admin/subscription/plans/'+id,{method:'PUT',body:JSON.stringify(data)});await loadSubscriptionAdmin();setStatus('subscriptionAdminStatus','Paket tersimpan di PostgreSQL dan API. Web customer akan membaca nilai terbaru.','ok')}
  catch(err){setStatus('subscriptionAdminStatus','Gagal menyimpan paket: '+err.message,'err')}finally{b.disabled=false}
 });
+
+
+/* Admin navigation: each work area has its own tab; existing panel IDs and handlers remain intact. */
+(function initAdminWorkspaceTabs(){
+ const app=document.querySelector('main.app');
+ if(!app||app.dataset.tabsReady==='1')return;
+ app.dataset.tabsReady='1';
+ const groups=[
+  {id:'overview',label:'Ringkasan',hint:'Status inti dan koneksi',match:el=>el.querySelector('#serverMonitor')||el.id==='serverMonitor'||el.id==='serverSettings'||/Ringkasan sistem|Koneksi API/.test(el.innerText||'')},
+  {id:'customers',label:'Customer',hint:'Akun dan penggunaan Free',match:el=>['customersPanel','freeUsagePanel'].includes(el.id)||/Manajemen Akun & Langganan|Pengguna Free & Riwayat/.test(el.innerText||'')},
+  {id:'subscriptions',label:'Paket & VIP',hint:'Paket, aktivasi, langganan',match:el=>['vipUserActivationPanel','subscriptionControl','vipSubscriptionControl'].includes(el.id)||/Manajemen Paket Langganan|Pengaturan Paket VIP Unlimited|Aktivasi Paket VIP untuk User/.test(el.innerText||'')},
+  {id:'history',label:'Riwayat & Storage',hint:'Riwayat proses dan penyimpanan',match:el=>el.id==='historyStorageCard'||/Riwayat & Storage/.test(el.innerText||'')},
+ ];
+ const direct=[...app.children].filter(el=>el.matches('section.card,div.grid'));
+ const nav=document.createElement('nav');nav.className='admin-tabs';nav.setAttribute('aria-label','Bagian panel admin');
+ nav.setAttribute('role','tablist');
+ const panels=new Map();
+ groups.forEach((g,i)=>{
+  const p=document.createElement('section');p.className='admin-tab-panel';p.id='admin-tab-panel-'+g.id;p.setAttribute('role','tabpanel');p.setAttribute('aria-labelledby','admin-tab-'+g.id);p.hidden=true;
+  const summary=document.createElement('div');summary.className='admin-tabs-summary full-panel';summary.innerHTML='<strong>'+g.label+'</strong><span>'+g.hint+'</span>';p.appendChild(summary);
+  panels.set(g.id,p);
+  const b=document.createElement('button');b.type='button';b.className='admin-tab';b.id='admin-tab-'+g.id;b.setAttribute('role','tab');b.setAttribute('aria-controls',p.id);b.setAttribute('aria-selected','false');b.tabIndex=-1;b.textContent=g.label;
+  b.addEventListener('click',()=>activate(g.id,true));
+  b.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const buttons=[...nav.querySelectorAll('[role=tab]')];let n=buttons.indexOf(b);if(e.key==='ArrowRight')n=(n+1)%buttons.length;else if(e.key==='ArrowLeft')n=(n-1+buttons.length)%buttons.length;else if(e.key==='Home')n=0;else n=buttons.length-1;buttons[n].focus();buttons[n].click()});
+  nav.appendChild(b);
+ });
+ const fallback=groups.find(g=>g.id==='overview');
+ direct.forEach(el=>{
+  const group=groups.find(g=>g.match(el))||fallback;
+  panels.get(group.id).appendChild(el);
+ });
+ app.appendChild(nav);
+ groups.forEach(g=>app.appendChild(panels.get(g.id)));
+ function activate(id,scroll){
+  groups.forEach(g=>{const active=g.id===id,b=nav.querySelector('#admin-tab-'+g.id),p=panels.get(g.id);b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;p.hidden=!active;});
+  try{sessionStorage.setItem('golden_admin_active_tab',id)}catch(_){}
+  if(scroll)nav.scrollIntoView({behavior:'auto',block:'start'});
+ }
+ let saved='overview';try{const candidate=sessionStorage.getItem('golden_admin_active_tab');if(groups.some(g=>g.id===candidate))saved=candidate}catch(_){}
+ activate(saved,false);
+})();
 
 </script>
 </body>
