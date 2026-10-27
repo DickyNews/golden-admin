@@ -539,11 +539,15 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
    <span class="badge" style="border-color:rgba(132,204,22,.5);color:#a3e635">VIP</span>
   </div>
   <div class="grid">
-   <div class="field"><label for="vipActivationCustomer">Pilih customer</label><select id="vipActivationCustomer"><option value="">Memuat daftar customer…</option></select></div>
+   <div class="field"><label for="vipNewCustomerName">Buat username customer baru</label><input id="vipNewCustomerName" minlength="2" maxlength="100" placeholder="Username customer baru"></div>
+   <div class="field"><label for="vipNewCustomerWhatsapp">Nomor WhatsApp (opsional)</label><input id="vipNewCustomerWhatsapp" maxlength="30" placeholder="08xxxxxxxxxx"></div>
+   <div class="field full"><button class="btn primary" id="createVipCustomer" type="button">Buat User VIP Baru & Generate Key</button></div>
+   <div class="field"><label for="vipActivationCustomer">Pilih customer yang akan diaktifkan</label><select id="vipActivationCustomer"><option value="">Memuat daftar customer…</option></select></div>
    <div class="field"><label for="vipActivationPlan">Pilih paket VIP</label><select id="vipActivationPlan"><option value="">Memuat paket VIP…</option></select></div>
   </div>
-  <div class="note">Panel aktivasi sudah ditampilkan. Aktivasi belum dikirim ke server karena API saat ini baru menyediakan pengaturan paket VIP, belum memiliki endpoint untuk menetapkan paket VIP ke akun customer. Tombol tidak akan mengubah data sampai endpoint aktivasi VIP tersedia.</div>
+  <div class="note">Pembuatan user dan generate key menggunakan API customer yang sudah tersedia. Penetapan paket VIP memerlukan endpoint aktivasi VIP di backend; tombol aktivasi tetap dikunci sampai endpoint itu dibuat agar tidak salah mengaktifkan paket reguler.</div>
   <div class="actions"><button class="btn primary" id="activateVipForCustomer" type="button" disabled>Aktifkan Paket VIP</button><button class="btn secondary" id="refreshVipActivation" type="button">Segarkan Pilihan</button></div>
+  <div class="status" id="vipNewCustomerStatus"></div>
   <div class="status" id="vipActivationStatus"></div>
  </section>
 </section>
@@ -1116,11 +1120,34 @@ function renderVipActivationChoices(){
   if(plans.some(p=>String(p.id)===previous))planSelect.value=previous;
  }
 }
+$('createVipCustomer').onclick=async()=>{
+ const button=$('createVipCustomer');
+ const username=$('vipNewCustomerName').value.trim();
+ const whatsapp=$('vipNewCustomerWhatsapp').value.trim()||null;
+ try{
+  if(username.length<2)throw new Error('Username minimal 2 karakter.');
+  if(managementCustomersCache.some(c=>String(c.name||'').trim().toLowerCase()===username.toLowerCase()))throw new Error('Username sudah digunakan.');
+  if(!confirm('Buat akun baru '+username+' dan generate key permanen?'))return;
+  button.disabled=true;button.textContent='Membuat user…';
+  const created=await api('/admin/customers',{method:'POST',body:JSON.stringify({name:username,whatsapp})});
+  const id=created.customer?.id;
+  if(!id)throw new Error('Server tidak mengembalikan ID customer.');
+  let keyData;
+  try{keyData=await api('/admin/customers/'+encodeURIComponent(id)+'/keys',{method:'POST',body:JSON.stringify({})})}
+  catch(e){await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin()]);throw new Error('User berhasil dibuat (ID '+id+'), tetapi generate key gagal: '+e.message)}
+  $('vipNewCustomerName').value='';$('vipNewCustomerWhatsapp').value='';
+  await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin()]);
+  $('vipActivationCustomer').value=String(id);
+  const key=keyData.key||'';
+  setStatus('vipNewCustomerStatus','User '+username+' berhasil dibuat (ID '+id+'). Key permanen: '+(key||'sudah diproses server')+'. Simpan key ini untuk user. Paket VIP belum aktif sampai endpoint aktivasi VIP tersedia.','ok');
+ }catch(e){setStatus('vipNewCustomerStatus','Gagal membuat user: '+e.message,'err')}
+ finally{button.disabled=false;button.textContent='Buat User VIP Baru & Generate Key'}
+};
 $('refreshVipActivation').onclick=async()=>{
  try{
-  await Promise.all([loadSubscriptionCustomersAdmin(),loadVipPlansAdmin()]);
+  await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin(),loadVipPlansAdmin()]);
   renderVipActivationChoices();
-  setStatus('vipActivationStatus','Pilihan customer dan paket VIP diperbarui. Aktivasi server belum tersedia.','info');
+  setStatus('vipActivationStatus','Pilihan customer dan paket VIP diperbarui.','info');
  }catch(e){setStatus('vipActivationStatus','Gagal memuat pilihan: '+e.message,'err')}
 };
 $('activateVipForCustomer').onclick=()=>{
