@@ -1327,11 +1327,47 @@ $('subscriptionPlansAdmin').addEventListener('click',async e=>{
  const app=document.querySelector('main.app');
  if(!app||app.dataset.tabsReady==='1')return;
  app.dataset.tabsReady='1';
+ const customerRoot=app.querySelector('#customersPanel');
+ const subscriptionRoot=app.querySelector('#subscriptionControl');
+ function makeWorkspaceCard(id,title,description){
+  const card=document.createElement('section');card.className='card';card.id=id;
+  const head=document.createElement('div');head.className='card-head';
+  head.innerHTML='<div><h2>'+title+'</h2><p>'+description+'</p></div>';
+  card.appendChild(head);return card;
+ }
+ if(customerRoot&&!app.querySelector('#regularActivationWorkspace')){
+  const regular=makeWorkspaceCard('regularActivationWorkspace','Aktivasi Paket Reguler','Buat akun reguler, aktifkan paket reguler, dan generate key permanen.');
+  const fields=customerRoot.querySelector(':scope > .grid');
+  const actions=customerRoot.querySelector(':scope > .actions');
+  const status=customerRoot.querySelector('#customerStatus');
+  if(fields)regular.appendChild(fields);if(actions)regular.appendChild(actions);if(status)regular.appendChild(status);
+  app.insertBefore(regular,customerRoot);
+  const vip=customerRoot.querySelector('#vipUserActivationPanel');
+  if(vip){const vipWrap=makeWorkspaceCard('vipActivationWorkspace','Aktivasi Paket VIP','Buat akun VIP baru, pilih paket VIP, dan generate key.');vipWrap.appendChild(vip);app.insertBefore(vipWrap,customerRoot);}
+ }
+ if(subscriptionRoot&&!app.querySelector('#regularPlansWorkspace')){
+  const vipPlans=subscriptionRoot.querySelector('#vipSubscriptionControl');
+  const vipActivation=app.querySelector('#vipActivationWorkspace');
+  const regularPlans=makeWorkspaceCard('regularPlansWorkspace','Kontrol Detail Paket Reguler','Kelola harga, batas ukuran video, kuota proses, masa aktif, urutan, dan status paket reguler.');
+  const plans=subscriptionRoot.querySelector('#subscriptionPlansAdmin');
+  const refresh=subscriptionRoot.querySelector('#refreshSubscriptions');
+  const head=subscriptionRoot.querySelector(':scope > .card-head');
+  const status=subscriptionRoot.querySelector('#subscriptionAdminStatus');
+  const divider=plans?.nextElementSibling;
+  if(head)regularPlans.appendChild(head);if(refresh&&!regularPlans.contains(refresh))regularPlans.querySelector('.card-head').appendChild(refresh);
+  if(plans)regularPlans.appendChild(plans);if(divider&&divider.classList.contains('divider'))divider.remove();if(status)regularPlans.appendChild(status);
+  app.insertBefore(regularPlans,subscriptionRoot);
+  if(vipPlans){const vipWrap=makeWorkspaceCard('vipPlansWorkspace','Kontrol Detail Paket VIP','Kelola harga, batas ukuran video, masa aktif, urutan, dan status paket VIP.');vipWrap.appendChild(vipPlans);app.insertBefore(vipWrap,subscriptionRoot);}
+  subscriptionRoot.remove();
+ }
  const groups=[
   {id:'overview',label:'Ringkasan & Server',hint:'Kesehatan, resource, monitoring dan koneksi',match:el=>['serverMonitor','serverSettings'].includes(el.id)||/Ringkasan sistem|Koneksi API/.test(el.innerText||'')},
   {id:'service',label:'Layanan SDR',hint:'Biaya COIN, upload maksimum dan status layanan',match:el=>el.id==='serviceControl'},
-  {id:'customers',label:'Customer',hint:'Akun, aktivasi dan penggunaan Free',match:el=>['customersPanel','freeUsagePanel'].includes(el.id)||/Manajemen Akun & Langganan|Pengguna Free & Riwayat/.test(el.innerText||'')},
-  {id:'subscriptions',label:'Paket & VIP',hint:'Harga, kuota, masa aktif dan aktivasi',match:el=>['vipUserActivationPanel','subscriptionControl','vipSubscriptionControl'].includes(el.id)||/Manajemen Paket Langganan|Pengaturan Paket VIP Unlimited|Aktivasi Paket VIP untuk User/.test(el.innerText||'')},
+  {id:'regular-activation',label:'Aktivasi Reguler',hint:'Buat akun dan aktifkan paket reguler',match:el=>el.id==='regularActivationWorkspace'},
+  {id:'vip-activation',label:'Aktivasi VIP',hint:'Aktivasi akun dan paket VIP',match:el=>el.id==='vipActivationWorkspace'},
+  {id:'regular-plans',label:'Kontrol Paket Reguler',hint:'Harga, kuota, ukuran maksimum dan masa aktif',match:el=>el.id==='regularPlansWorkspace'},
+  {id:'vip-plans',label:'Kontrol Paket VIP',hint:'Harga, ukuran maksimum dan masa aktif VIP',match:el=>el.id==='vipPlansWorkspace'},
+  {id:'customers',label:'Manajemen Customer',hint:'Akun, perangkat, penggunaan Free dan riwayat customer',match:el=>['customersPanel','freeUsagePanel'].includes(el.id)||/Manajemen Akun & Langganan|Pengguna Free & Riwayat/.test(el.innerText||'')},
   {id:'history',label:'Riwayat & Storage',hint:'Job customer, output dan pengelolaan file',match:el=>el.id==='historyStorageCard'||/Riwayat & Storage/.test(el.innerText||'')},
  ];
  const direct=[...app.children].filter(el=>el.matches('section.card,div.grid'));
