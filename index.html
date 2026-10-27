@@ -468,6 +468,46 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
       <div class="service-grid" id="serverServices"><div class="note">Memuat status layanan…</div></div>
       <div class="server-alert hidden" id="serverAlerts"></div><div class="status" id="serverUpdated">Belum diperbarui.</div>
     </section>
+    <section class="card" id="serviceControl">
+      <div class="card-head">
+        <div><h2>Pengaturan Layanan Golden HD SDR</h2><p>Kontrol konfigurasi layanan yang dipakai backend untuk upload customer. Perubahan dicatat melalui audit log API.</p></div>
+        <span class="badge" id="serviceStatus">MEMUAT</span>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <label for="serviceSelect">Layanan</label>
+          <select id="serviceSelect" disabled>
+            <option value="golden_hd_tiktok">Golden HD TikTok · SDR</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="coin">Biaya per job (COIN)</label>
+          <input id="coin" type="number" min="0" max="1000000000" step="1" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="maxMb">Maksimum ukuran upload (MB)</label>
+          <input id="maxMb" type="number" min="1" max="4096" step="1" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="active">Status layanan</label>
+          <select id="active">
+            <option value="true">Aktif — menerima job baru</option>
+            <option value="false">Nonaktif — blokir job baru</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Kode layanan aktif</label>
+          <input id="serviceCodeReadout" value="golden_hd_tiktok" readonly>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="savePricing" type="button">Simpan Pengaturan Layanan</button>
+        <button class="btn secondary" id="reloadPricing" type="button">Muat Ulang dari Server</button>
+      </div>
+      <div class="status" id="pricingStatus"></div>
+      <div class="note">Batas ukuran diterapkan backend pada upload baru. Menonaktifkan layanan tidak menghentikan worker atau mengubah job yang sudah berjalan. Panel ini hanya mengatur <code>golden_hd_tiktok</code> (SDR); layanan HDR yang diarsipkan tidak diubah.</div>
+    </section>
+
     <section class="card" id="serverSettings">
       <div class="card-head"><div><h2>Pengaturan monitoring server</h2><p>Ubah interval pembaruan dan ambang peringatan. Disimpan di server.</p></div><span class="badge" id="settingsSavedBadge">PENGATURAN</span></div>
       <div class="settings-grid">
@@ -660,23 +700,48 @@ function customerName(c){return c.name??c.customer_name??'Customer'}
 function customerBalance(c){return c.coin_balance??c.coins??c.balance??c.coin??0}
 function customerWhatsapp(c){return c.whatsapp??c.whatsapp_number??c.phone_number??c.phone??''}
 
+let selectedServiceId=null;
 async function loadPricing(){
   const d=await api('/admin/pricing');
   const services=Array.isArray(d.services)?d.services:[];
-  const s=services.find(x=>x.service_code===selectedServiceCode);
-  if(!s)throw new Error('Layanan '+selectedServiceCode+' tidak ditemukan di backend');
-  $('serviceSelect').value=s.service_code;
+  const s=services.find(x=>x.service_code==='golden_hd_tiktok');
+  if(!s)throw new Error('Layanan golden_hd_tiktok tidak ditemukan di backend');
+  selectedServiceId=Number(s.id);
+  $('serviceSelect').value='golden_hd_tiktok';
+  $('serviceCodeReadout').value=s.service_code;
   $('apiServiceCode').textContent=s.service_code;
   $('coin').value=Number(s.coin_cost??0);
   $('maxMb').value=Math.round(Number(s.max_file_size_bytes??0)/1048576);
   $('active').value=String(!!s.is_active);
-  $('serviceStatus').textContent=s.is_active?'AKTIF':'NONAKTIF';
-  $('serviceStatus').className='badge '+(s.is_active?'':'off');
-  $('statService').textContent=(s.name||s.service_code)+(s.service_code==='golden_hdr_tiktok'?' (HDR)':' (SDR)');
-  $('statCoin').textContent='Langganan';
+  $('serviceStatus').textContent=s.is_active?'LAYANAN AKTIF':'LAYANAN NONAKTIF';
+  $('serviceStatus').className='badge '+(s.is_active?'ok':'off');
+  $('statService').textContent=(s.name||s.service_code)+' (SDR)';
+  $('statCoin').textContent=Number(s.coin_cost??0)+' COIN / job';
   $('statMax').textContent=Math.round(Number(s.max_file_size_bytes??0)/1048576)+' MB';
-  setStatus('pricingStatus','Pengaturan terbaru berhasil dimuat.','ok');
+  setStatus('pricingStatus','Konfigurasi SDR dimuat dari server. Terakhir diperbarui: '+(s.updated_at?formatLocalDate(s.updated_at):'waktu tidak tersedia')+'.','ok');
 }
+$('reloadPricing').onclick=async()=>{
+ const b=$('reloadPricing');b.disabled=true;
+ try{await loadPricing();setStatus('pricingStatus','Konfigurasi SDR terbaru berhasil dimuat.','ok')}
+ catch(e){setStatus('pricingStatus','Gagal memuat konfigurasi layanan: '+e.message,'err')}
+ finally{b.disabled=false}
+};
+$('savePricing').onclick=async()=>{
+ const b=$('savePricing');
+ const coin=Number($('coin').value),mb=Number($('maxMb').value),isActive=$('active').value==='true';
+ if(!Number.isSafeInteger(coin)||coin<0||coin>1000000000){setStatus('pricingStatus','Biaya COIN harus bilangan bulat antara 0 dan 1.000.000.000.','err');return}
+ if(!Number.isInteger(mb)||mb<1||mb>4096){setStatus('pricingStatus','Ukuran upload harus bilangan bulat 1–4096 MB.','err');return}
+ if(!selectedServiceId){setStatus('pricingStatus','ID layanan belum dimuat. Muat ulang dari server terlebih dahulu.','err');return}
+ const action=isActive?'mengaktifkan/memperbarui':'menonaktifkan';
+ if(!confirm('Konfirmasi perubahan Golden HD SDR?\nBiaya: '+coin+' COIN/job\nMaksimum upload: '+mb+' MB\nStatus: '+(isActive?'AKTIF':'NONAKTIF')+'\n\nPerubahan akan diterapkan pada job baru.'))return;
+ b.disabled=true;
+ try{
+  await api('/admin/pricing/'+encodeURIComponent(selectedServiceId),{method:'PUT',body:JSON.stringify({coin_cost:coin,max_file_size_bytes:mb*1048576,is_active:isActive})});
+  await Promise.all([loadPricing(),checkHealth()]);
+  setStatus('pricingStatus','Pengaturan Golden HD SDR berhasil disimpan. '+(isActive?'Layanan tetap menerima job baru.':'Layanan dinonaktifkan untuk job baru.')+' Perubahan tercatat di audit log backend.','ok');
+ }catch(e){setStatus('pricingStatus','Pengaturan tidak dapat dipastikan tersimpan: '+e.message,'err')}
+ finally{b.disabled=false}
+};
 
 async function loadCustomers(){
   const d=await api('/admin/customers');
@@ -782,6 +847,7 @@ async function openDashboard(){
   $('dashboard').classList.add('ready');
   $('loginView').classList.add('hidden');
   const results=await Promise.allSettled([
+    loadPricing(),
     loadCustomers().catch(e=>{setStatus('customerStatus','Gagal memuat customer: '+e.message,'err');throw e}),
     loadSubscriptionAdmin().catch(e=>{setStatus('subscriptionAdminStatus','Gagal memuat langganan: '+e.message,'err');throw e}),
     loadVipPlansAdmin().catch(e=>{setStatus('vipAdminStatus','Gagal memuat paket VIP: '+e.message,'err');throw e}),
@@ -824,6 +890,7 @@ $('refreshAll').onclick=async()=>{
   setStatus('serverUpdated','Refresh dimulai…','info');
   try{
     const results=await Promise.allSettled([
+      loadPricing(),
       loadCustomers(),
       loadSubscriptionAdmin(),
       loadVipPlansAdmin(),
@@ -833,7 +900,7 @@ $('refreshAll').onclick=async()=>{
       loadStorageStats(),
       (async()=>{await loadServerSettings();await loadServerStatus()})()
     ]);
-    const names=['Customer','Paket dan langganan','Paket VIP','Pengaturan Free','Riwayat Free','Koneksi API','Storage','Monitoring server'];
+    const names=['Pengaturan layanan SDR','Customer','Paket dan langganan','Paket VIP','Pengaturan Free','Riwayat Free','Koneksi API','Storage','Monitoring server'];
     results.forEach((r,i)=>{if(r.status==='rejected')setStatus(i===6?'serverUpdated':i===0?'customerStatus':i===5?'storageStatus':i===4?'healthStatus':'subscriptionAdminStatus',names[i]+' gagal diperbarui: '+(r.reason?.message||'Kesalahan tidak diketahui'),'err')});
     const rejected=results.filter(r=>r.status==='rejected').length;
     const healthFailed=$('apiBadge').classList.contains('off')||$('healthBadge').classList.contains('off');
@@ -1229,10 +1296,11 @@ $('subscriptionPlansAdmin').addEventListener('click',async e=>{
  if(!app||app.dataset.tabsReady==='1')return;
  app.dataset.tabsReady='1';
  const groups=[
-  {id:'overview',label:'Ringkasan',hint:'Status inti dan koneksi',match:el=>el.querySelector('#serverMonitor')||el.id==='serverMonitor'||el.id==='serverSettings'||/Ringkasan sistem|Koneksi API/.test(el.innerText||'')},
-  {id:'customers',label:'Customer',hint:'Akun dan penggunaan Free',match:el=>['customersPanel','freeUsagePanel'].includes(el.id)||/Manajemen Akun & Langganan|Pengguna Free & Riwayat/.test(el.innerText||'')},
-  {id:'subscriptions',label:'Paket & VIP',hint:'Paket, aktivasi, langganan',match:el=>['vipUserActivationPanel','subscriptionControl','vipSubscriptionControl'].includes(el.id)||/Manajemen Paket Langganan|Pengaturan Paket VIP Unlimited|Aktivasi Paket VIP untuk User/.test(el.innerText||'')},
-  {id:'history',label:'Riwayat & Storage',hint:'Riwayat proses dan penyimpanan',match:el=>el.id==='historyStorageCard'||/Riwayat & Storage/.test(el.innerText||'')},
+  {id:'overview',label:'Ringkasan & Server',hint:'Kesehatan, resource, monitoring dan koneksi',match:el=>['serverMonitor','serverSettings'].includes(el.id)||/Ringkasan sistem|Koneksi API/.test(el.innerText||'')},
+  {id:'service',label:'Layanan SDR',hint:'Biaya COIN, upload maksimum dan status layanan',match:el=>el.id==='serviceControl'},
+  {id:'customers',label:'Customer',hint:'Akun, aktivasi dan penggunaan Free',match:el=>['customersPanel','freeUsagePanel'].includes(el.id)||/Manajemen Akun & Langganan|Pengguna Free & Riwayat/.test(el.innerText||'')},
+  {id:'subscriptions',label:'Paket & VIP',hint:'Harga, kuota, masa aktif dan aktivasi',match:el=>['vipUserActivationPanel','subscriptionControl','vipSubscriptionControl'].includes(el.id)||/Manajemen Paket Langganan|Pengaturan Paket VIP Unlimited|Aktivasi Paket VIP untuk User/.test(el.innerText||'')},
+  {id:'history',label:'Riwayat & Storage',hint:'Job customer, output dan pengelolaan file',match:el=>el.id==='historyStorageCard'||/Riwayat & Storage/.test(el.innerText||'')},
  ];
  const direct=[...app.children].filter(el=>el.matches('section.card,div.grid'));
  const nav=document.createElement('nav');nav.className='admin-tabs';nav.setAttribute('aria-label','Bagian panel admin');
