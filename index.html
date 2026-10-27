@@ -901,11 +901,12 @@ $('refreshAll').onclick=async()=>{
       (async()=>{await loadServerSettings();await loadServerStatus()})()
     ]);
     const names=['Pengaturan layanan SDR','Customer','Paket dan langganan','Paket VIP','Pengaturan Free','Riwayat Free','Koneksi API','Storage','Monitoring server'];
-    results.forEach((r,i)=>{if(r.status==='rejected')setStatus(i===6?'serverUpdated':i===0?'customerStatus':i===5?'storageStatus':i===4?'healthStatus':'subscriptionAdminStatus',names[i]+' gagal diperbarui: '+(r.reason?.message||'Kesalahan tidak diketahui'),'err')});
+    const statusTargets=['pricingStatus','customerStatus','subscriptionAdminStatus','vipAdminStatus','freeUsageStatus','freeUsageStatus','healthStatus','storageStatus','serverUpdated'];
+    results.forEach((r,i)=>{if(r.status==='rejected')setStatus(statusTargets[i]||'systemStatus',names[i]+' gagal diperbarui: '+(r.reason?.message||'Kesalahan tidak diketahui'),'err')});
     const rejected=results.filter(r=>r.status==='rejected').length;
     const healthFailed=$('apiBadge').classList.contains('off')||$('healthBadge').classList.contains('off');
     const storageFailed=$('storageStatus').classList.contains('err-text');
-    const serverFailed=results[6].status==='rejected'||$('serverLiveBadge').textContent==='GAGAL MEMUAT';
+    const serverFailed=results[8].status==='rejected'||$('serverLiveBadge').textContent==='GAGAL MEMUAT';
     const failed=rejected+(healthFailed?1:0)+(storageFailed?1:0)+(serverFailed?1:0);
     if(failed){
       setStatus('systemStatus','Pembaruan selesai dengan '+failed+' bagian bermasalah. Lihat status pada panel terkait; data yang gagal tidak dianggap berhasil.','err');
