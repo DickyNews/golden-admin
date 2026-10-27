@@ -571,6 +571,12 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
  <div class="divider" style="margin:20px 0"></div>
  <div class="status" id="subscriptionAdminStatus"></div>
 </section>
+<section class="card" id="vipPlansControl" style="margin:20px 0">
+ <div class="card-head"><div><h2>Manajemen Paket VIP Golden HD</h2><p>Pengaturan VIP tersimpan terpisah dari paket langganan biasa dan dibaca langsung oleh web customer.</p></div><button class="btn secondary" id="refreshVipPlans" type="button">Segarkan VIP</button></div>
+ <div id="vipPlansAdmin" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px"><p>Memuat konfigurasi VIP…</p></div>
+ <div class="divider" style="margin:20px 0"></div><div class="status" id="vipAdminStatus"></div>
+</section>
+
 </main>
 </div>
 
@@ -1084,13 +1090,27 @@ async function loadSubscriptionPlansAdmin(){
  renderCustomers();
  $('subscriptionPlansAdmin').innerHTML=plans.map(p=>'<article class="card" style="padding:14px;min-width:0" data-plan-id="'+p.id+'"><h3>'+esc(p.name)+'</h3><div class="field"><label>Nama paket</label><input data-f="name" value="'+esc(p.name)+'"></div><div class="field"><label>Harga (Rupiah)</label><input data-f="price_idr" type="number" min="0" step="1000" value="'+p.price_idr+'"></div><div class="field"><label>Maks. ukuran video (MB)</label><input data-f="max_file_size_mb" type="number" min="1" max="4096" step="1" value="'+p.max_file_size_mb+'"></div><div class="field"><label>Kuota proses</label><input data-f="process_quota" type="number" min="1" value="'+p.process_quota+'"></div><div class="field"><label>Masa aktif (hari)</label><input data-f="duration_days" type="number" min="1" max="3650" value="'+p.duration_days+'"></div><div class="field"><label>Urutan tampil</label><input data-f="sort_order" type="number" min="1" value="'+p.sort_order+'"></div><div class="field"><label>Status paket</label><select data-f="is_active"><option value="true" '+(p.is_active?'selected':'')+'>Aktif</option><option value="false" '+(!p.is_active?'selected':'')+'>Nonaktif</option></select></div><button class="btn primary save-sub-plan" type="button">Simpan Paket</button></article>').join('');
 }
+async function loadVipPlansAdmin(){
+ const d=await api('/admin/vip/plans'),plans=Array.isArray(d.plans)?d.plans:[];
+ $('vipPlansAdmin').innerHTML=plans.map(p=>'<article class="card" style="padding:14px;min-width:0" data-vip-plan-id="'+p.id+'"><h3>'+esc(p.name)+'</h3><p style="opacity:.75;font-size:12px">Kode: '+esc(p.code)+'</p><div class="field"><label>Nama paket</label><input data-vf="name" value="'+esc(p.name)+'"></div><div class="field"><label>Harga (Rupiah)</label><input data-vf="price_idr" type="number" min="0" step="1000" value="'+p.price_idr+'"></div><div class="field"><label>Maks. ukuran video (MB)</label><input data-vf="max_file_size_mb" type="number" min="1" max="4096" step="1" value="'+p.max_file_size_mb+'"></div><div class="field"><label>Masa aktif (hari)</label><input data-vf="duration_days" type="number" min="1" max="3650" value="'+p.duration_days+'"></div><div class="field"><label>Urutan tampil</label><input data-vf="sort_order" type="number" min="1" value="'+p.sort_order+'"></div><div class="field"><label>Status paket</label><select data-vf="is_active"><option value="true" '+(p.is_active?'selected':'')+'>Aktif</option><option value="false" '+(!p.is_active?'selected':'')+'>Nonaktif</option></select></div><button class="btn primary save-vip-plan" type="button">Simpan Paket VIP</button></article>').join('');
+}
 async function loadSubscriptionCustomersAdmin(){
  const d=await api('/admin/subscriptions');
  managementCustomersCache=d.customers||[];
  renderCustomers();
 }
-async function loadSubscriptionAdmin(){await Promise.all([loadSubscriptionPlansAdmin(),loadSubscriptionCustomersAdmin()])}
+async function loadSubscriptionAdmin(){await Promise.all([loadSubscriptionPlansAdmin(),loadSubscriptionCustomersAdmin(),loadVipPlansAdmin()])}
 $('refreshSubscriptions').onclick=()=>loadSubscriptionAdmin().then(()=>setStatus('subscriptionAdminStatus','Paket dan langganan disegarkan dari server.','ok')).catch(e=>setStatus('subscriptionAdminStatus',e.message,'err'));
+$('refreshVipPlans').onclick=()=>loadVipPlansAdmin().then(()=>setStatus('vipAdminStatus','Paket VIP diperbarui dari server.','ok')).catch(e=>setStatus('vipAdminStatus',e.message,'err'));
+$('vipPlansAdmin').addEventListener('click',async e=>{
+ const b=e.target.closest('.save-vip-plan');if(!b)return;
+ const card=b.closest('[data-vip-plan-id]'),id=card.dataset.vipPlanId;
+ const val=f=>card.querySelector('[data-vf="'+f+'"]').value;
+ const data={name:val('name'),price_idr:Number(val('price_idr')),max_file_size_mb:Number(val('max_file_size_mb')),duration_days:Number(val('duration_days')),sort_order:Number(val('sort_order')),is_active:val('is_active')==='true'};
+ b.disabled=true;
+ try{await api('/admin/vip/plans/'+id,{method:'PUT',body:JSON.stringify(data)});await loadVipPlansAdmin();setStatus('vipAdminStatus','Paket VIP tersimpan di server dan web customer membaca nilai terbaru.','ok')}
+ catch(err){setStatus('vipAdminStatus','Gagal menyimpan paket VIP: '+err.message,'err')}finally{b.disabled=false}
+});
 $('subscriptionPlansAdmin').addEventListener('click',async e=>{
  const b=e.target.closest('.save-sub-plan');if(!b)return;
  const card=b.closest('[data-plan-id]'),id=card.dataset.planId;
