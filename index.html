@@ -611,13 +611,21 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
         <div class="stat"><small>Total file output</small><b id="storageOutputFiles">—</b></div>
         <div class="stat"><small>Total storage terkelola</small><b id="storageTotal">—</b></div>
       </div>
-      <div class="note" style="margin-top:12px">Panel ini memerlukan endpoint backend: <code>GET /admin/storage</code>, <code>GET /admin/customers/{id}/jobs</code>, dan endpoint DELETE yang memvalidasi status job serta menghapus file secara aman. Jika endpoint belum tersedia, panel akan menampilkan error API dan tidak menganggap tindakan berhasil.</div>
+      <div class="note" style="margin-top:12px">Monitoring memakai endpoint baca yang sudah tersedia. Penghapusan riwayat per job belum didukung backend; kontrol hapus sengaja tidak ditampilkan agar tidak memberi kesan palsu atau berisiko menghapus seluruh akun customer.</div>
+      <div class="divider" style="margin:20px 0"></div>
+      <div class="card-head"><div><h3>Monitor seluruh job</h3><p>Gabungan riwayat job customer untuk pemeriksaan status dan ukuran file.</p></div><button class="btn secondary" id="refreshGlobalJobs" type="button">Muat Semua Job</button></div>
+      <div class="grid" style="margin-top:12px">
+        <div class="field"><label for="globalJobSearch">Cari job / customer / nama file</label><input id="globalJobSearch" type="search" placeholder="ID job, customer, nama file…"></div>
+        <div class="field"><label for="globalJobStatus">Filter status</label><select id="globalJobStatus"><option value="">Semua status</option><option value="queued">Antrean</option><option value="running">Berjalan</option><option value="completed">Selesai</option><option value="failed">Gagal</option><option value="cancelled">Dibatalkan</option><option value="expired">Kedaluwarsa</option></select></div>
+      </div>
+      <div class="status" id="globalJobsStatus"></div>
+      <div id="globalJobsList" class="customer-list"><div class="note">Tekan Muat Semua Job untuk memulai pemindaian riwayat customer.</div></div>
+      <div class="divider" style="margin:20px 0"></div>
       <div class="grid" style="margin-top:16px">
-        <div class="field full"><label>Pilih customer untuk melihat riwayat</label><select id="historyCustomer"><option value="">Pilih customer…</option></select></div>
+        <div class="field full"><label for="historyCustomer">Pilih customer untuk melihat riwayat</label><select id="historyCustomer"><option value="">Pilih customer…</option></select></div>
       </div>
       <div class="actions">
-        <button class="btn primary" id="loadCustomerHistory">Muat Riwayat</button>
-        <button class="btn danger" id="deleteCustomerHistory" disabled>Hapus Semua Riwayat Customer</button>
+        <button class="btn primary" id="loadCustomerHistory" type="button">Muat Riwayat Customer</button>
       </div>
       <div class="status" id="storageStatus"></div>
       <div id="customerHistory" class="customer-list"><div class="note">Pilih customer, lalu tekan Muat Riwayat.</div></div>
@@ -980,58 +988,81 @@ async function loadStorageStats(){
     setStatus('storageStatus','Statistik storage belum tersedia: '+e.message,'err');
   }
 }
+let globalJobsCache=[];
+async function loadGlobalJobs(){
+  const b=$('refreshGlobalJobs');if(b)b.disabled=true;
+  setStatus('globalJobsStatus','Mengambil riwayat dari API customer…');
+  $('globalJobsList').innerHTML='<div class="note">Sedang memuat job customer. Jangan tutup panel sampai proses selesai.</div>';
+  try{
+    if(!customersCache.length)await loadCustomers();
+    const targets=customersCache.filter(c=>!/dicky news free guest/i.test(customerName(c)));
+    const collected=[];
+    for(let i=0;i<targets.length;i+=8){
+      const batch=targets.slice(i,i+8);
+      const results=await Promise.allSettled(batch.map(async c=>{
+        const id=customerId(c);
+        const d=await api('/admin/customers/'+encodeURIComponent(id)+'/jobs?limit=100&offset=0');
+        const jobs=Array.isArray(d)?d:(Array.isArray(d.jobs)?d.jobs:(Array.isArray(d.items)?d.items:[]));
+        return jobs.map(j=>({...j,customer_id:id,customer_name:customerName(c)}));
+      }));
+      for(const result of results){
+        if(result.status==='fulfilled')collected.push(...result.value);
+      }
+      setStatus('globalJobsStatus','Memuat customer '+Math.min(i+batch.length,targets.length)+'/'+targets.length+'…');
+    }
+    globalJobsCache=collected.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+    renderGlobalJobs();
+    setStatus('globalJobsStatus','Berhasil membaca '+globalJobsCache.length+' job dari '+targets.length+' customer. Catatan: API membatasi riwayat per customer hingga 100 job terbaru.','ok');
+  }catch(e){
+    setStatus('globalJobsStatus','Monitoring job gagal dimuat: '+e.message,'err');
+    $('globalJobsList').innerHTML='<div class="note">Tidak ada data baru yang ditampilkan. Periksa sesi admin dan koneksi API, lalu coba lagi.</div>';
+  }finally{if(b)b.disabled=false}
+}
+function renderGlobalJobs(){
+  const q=($('globalJobSearch')?.value||'').trim().toLowerCase();
+  const sf=($('globalJobStatus')?.value||'').toLowerCase();
+  const rows=globalJobsCache.filter(j=>{
+    const hay=[j.id,j.customer_id,j.customer_name,j.original_filename,j.service_code,j.status,j.error_message].join(' ').toLowerCase();
+    return (!q||hay.includes(q))&&(!sf||String(j.status||'').toLowerCase()===sf);
+  });
+  if(!rows.length){$('globalJobsList').innerHTML='<div class="note">Tidak ada job yang cocok dengan filter.</div>';return}
+  $('globalJobsList').innerHTML=rows.map(j=>{
+    const status=String(j.status||'unknown').toLowerCase();
+    const active=['queued','running','processing','pending','waiting','submitted','starting','in_progress','cancelling','cancel_requested'].includes(status);
+    return '<article class="customer-card"><div class="history-title">Job #'+esc(j.id)+' · '+esc(status.toUpperCase())+' · '+esc(j.service_code||'Layanan')+'</div><div class="history-meta">Customer: '+esc(j.customer_name||'—')+' (ID '+esc(j.customer_id)+') · Dibuat: '+esc(j.created_at||'—')+'</div><div class="history-meta">File: '+esc(j.original_filename||'—')+' · Input '+formatBytes(j.input_size_bytes)+' · Output '+formatBytes(j.output_size_bytes)+'</div><div class="history-meta">Progres: '+esc(j.progress_percent??'—')+'% · '+esc(j.progress_label||'—')+(active?' · Job belum terminal':'')+'</div>'+(j.error_message?'<div class="history-meta">Error: '+esc(j.error_message)+'</div>':'')+'</article>';
+  }).join('');
+}
+$('refreshGlobalJobs').onclick=loadGlobalJobs;
+$('globalJobSearch').addEventListener('input',renderGlobalJobs);
+$('globalJobStatus').addEventListener('change',renderGlobalJobs);
+
 async function loadCustomerHistory(){
   const id=$('historyCustomer').value;
   if(!id)throw new Error('Pilih customer terlebih dahulu.');
-  $('deleteCustomerHistory').disabled=true;
   const d=await api('/admin/customers/'+encodeURIComponent(id)+'/jobs');
   const jobs=Array.isArray(d)?d:(Array.isArray(d.jobs)?d.jobs:(Array.isArray(d.items)?d.items:[]));
   const hasActiveJobs=jobs.some(j=>['queued','running','processing','pending','waiting','submitted','starting','in_progress','cancelling','cancel_requested'].includes(String(j.status||'unknown').toLowerCase()));
-  $('deleteCustomerHistory').disabled=jobs.length===0||hasActiveJobs;
   if(!jobs.length){$('customerHistory').innerHTML='<div class="note">Tidak ada riwayat job untuk customer ini.</div>';return;}
   if(hasActiveJobs)setStatus('storageStatus','Ada job aktif/antrean. Hapus semua dinonaktifkan demi keamanan.','err');
   $('customerHistory').innerHTML=jobs.map(j=>{
     const status=String(j.status||'unknown').toLowerCase();
     const active=['queued','running','processing','pending','waiting','submitted','starting','in_progress','cancelling','cancel_requested'].includes(status);
     const bytes=Number(j.input_size_bytes||0)+Number(j.output_size_bytes||0);
-    return '<article class="customer-card"><div class="history-row"><div><div class="history-title">Job #'+esc(j.id)+' · '+esc(j.service_code||j.service_name||'Layanan')+' · '+esc(status.toUpperCase())+'</div><div class="history-meta">Input: '+esc(j.original_filename||'Nama file tidak tersedia')+' · '+formatBytes(j.input_size_bytes)+' | Output: '+formatBytes(j.output_size_bytes)+' | Total: '+formatBytes(bytes)+'</div><div class="history-meta">Dibuat: '+esc(j.created_at||'—')+'</div><div class="history-meta">Perangkat: '+esc(j.device_info||'Belum tercatat')+'</div></div><button class="btn danger delete-one" data-job-id="'+esc(j.id)+'" '+(active?'disabled title="Job aktif tidak boleh dihapus"':'')+'>Hapus Riwayat & File</button></div></article>';
+    return '<article class="customer-card"><div class="history-row"><div><div class="history-title">Job #'+esc(j.id)+' · '+esc(j.service_code||j.service_name||'Layanan')+' · '+esc(status.toUpperCase())+'</div><div class="history-meta">Input: '+esc(j.original_filename||'Nama file tidak tersedia')+' · '+formatBytes(j.input_size_bytes)+' | Output: '+formatBytes(j.output_size_bytes)+' | Total: '+formatBytes(bytes)+'</div><div class="history-meta">Dibuat: '+esc(j.created_at||'—')+'</div><div class="history-meta">Perangkat: '+esc(j.device_info||'Belum tercatat')+'</div></div></div></article>';
   }).join('');
   return hasActiveJobs;
 }
 $('historyCustomer').addEventListener('change',()=>{
-  $('deleteCustomerHistory').disabled=true;
   $('customerHistory').innerHTML='<div class="note">Customer berubah. Muat riwayat customer terpilih sebelum melakukan tindakan.</div>';
 });
 $('loadCustomerHistory').onclick=async()=>{
   try{
     setStatus('storageStatus','Memuat riwayat customer…');
     const hasActiveJobs=await loadCustomerHistory();
-    if(hasActiveJobs)setStatus('storageStatus','Riwayat dimuat, tetapi ada job aktif/antrean. Penghapusan massal dinonaktifkan.','err');
+    if(hasActiveJobs)setStatus('storageStatus','Riwayat dimuat; terdapat job aktif/antrean.','err');
     else setStatus('storageStatus','Riwayat berhasil dimuat.','ok');
   }catch(e){setStatus('storageStatus','Riwayat belum tersedia: '+e.message,'err')}
 };
-$('deleteCustomerHistory').onclick=async()=>{
-  const id=$('historyCustomer').value;
-  if(!id){setStatus('storageStatus','Pilih customer terlebih dahulu.','err');return}
-  const c=customersCache.find(x=>String(customerId(x))===String(id));
-  if(!confirm('Hapus semua riwayat dan file yang aman dihapus untuk '+customerName(c||{})+' (ID '+id+')? Job aktif/queued wajib ditolak oleh backend. Tindakan ini tidak dapat dibatalkan.'))return;
-  try{
-    await api('/admin/customers/'+encodeURIComponent(id)+'/jobs',{method:'DELETE',body:JSON.stringify({confirm:true})});
-    setStatus('storageStatus','Permintaan penghapusan diterima backend. Memuat ulang data…','ok');
-    await Promise.all([loadCustomerHistory(),loadStorageStats()]);
-  }catch(e){setStatus('storageStatus','Penghapusan tidak dilakukan / gagal: '+e.message,'err')}
-};
-$('customerHistory').addEventListener('click',async e=>{
-  const btn=e.target.closest('.delete-one');if(!btn||btn.disabled)return;
-  const id=$('historyCustomer').value,jobId=btn.dataset.jobId;
-  if(!confirm('Hapus riwayat dan file untuk Job #'+jobId+'? Job queued/running wajib ditolak backend.'))return;
-  btn.disabled=true;
-  try{
-    await api('/admin/customers/'+encodeURIComponent(id)+'/jobs/'+encodeURIComponent(jobId),{method:'DELETE',body:JSON.stringify({confirm:true})});
-    setStatus('storageStatus','Job #'+jobId+' berhasil dihapus oleh backend.','ok');
-    await Promise.all([loadCustomerHistory(),loadStorageStats()]);
-  }catch(e){setStatus('storageStatus','Penghapusan Job #'+jobId+' gagal: '+e.message,'err');btn.disabled=false}
-});
 $('customers').addEventListener('click',async e=>{
  const card=e.target.closest('.management-user');if(!card)return;
  const id=card.dataset.id;
