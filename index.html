@@ -697,6 +697,7 @@ function setStatus(id,msg,kind=''){
 function esc(v){
   return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 }
+function formatSizeMB(value){const mb=Number(value||0);return mb>=1024?(mb/1024).toLocaleString('id-ID',{maximumFractionDigits:2})+' GB':mb+' MB';}
 function getList(d){
   if(Array.isArray(d))return d;
   if(Array.isArray(d.customers))return d.customers;
@@ -725,7 +726,7 @@ async function loadPricing(){
   $('serviceStatus').className='badge '+(s.is_active?'ok':'off');
   $('statService').textContent=(s.name||s.service_code)+' (SDR)';
   $('statCoin').textContent='Paket langganan';
-  $('statMax').textContent=Math.round(Number(s.max_file_size_bytes??0)/1048576)+' MB';
+  $('statMax').textContent=formatSizeMB(Number(s.max_file_size_bytes??0)/1048576);
   setStatus('pricingStatus','Konfigurasi SDR dimuat dari server. Terakhir diperbarui: '+(s.updated_at?formatLocalDate(s.updated_at):'waktu tidak tersedia')+'.','ok');
 }
 $('reloadPricing').onclick=async()=>{
@@ -1248,7 +1249,7 @@ function renderVipActivationChoices(){
  if(planSelect){
   const previous=planSelect.value;
   const plans=(Array.isArray(vipPlansCache)?vipPlansCache:[]).filter(p=>p.is_active);
-  planSelect.innerHTML='<option value="">Pilih paket VIP…</option>'+plans.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+' · Rp '+Number(p.price_idr||0).toLocaleString('id-ID')+' · maks. '+Number(p.max_file_size_mb||0)+' MB · '+Number(p.duration_days||0)+' hari</option>').join('');
+  planSelect.innerHTML='<option value="">Pilih paket VIP…</option>'+plans.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+' · Rp '+Number(p.price_idr||0).toLocaleString('id-ID')+' · maks. '+formatSizeMB(p.max_file_size_mb)+' · '+Number(p.duration_days||0)+' hari</option>').join('');
   if(plans.some(p=>String(p.id)===previous))planSelect.value=previous;
  }
 }
