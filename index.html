@@ -432,7 +432,7 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
 .customer-pagination{display:flex;align-items:center;justify-content:center;gap:16px;padding:14px 0;color:var(--muted);font-size:12px}.customer-pagination .btn{min-height:36px;padding:7px 12px}
 @media(max-width:900px){.customer-filter-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.customer-overview{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.customer-filter-grid{grid-template-columns:1fr 1fr}.customer-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.customer-kpi:last-child{grid-column:1/-1}.customer-pagination{gap:8px;flex-wrap:wrap}.customer-table{min-width:1050px}}
-</style>
+.customer-segment-switch{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding:5px;border:1px solid #263743;border-radius:13px;background:#090e14}.customer-segment-btn{border:1px solid transparent;background:transparent;color:#9fb3c2;border-radius:9px;padding:10px 14px;font-weight:800}.customer-segment-btn.active{background:#16343a;border-color:#25646b;color:#8af5ec}.customer-migration-editor{margin-top:12px;padding:12px;border:1px solid #28414a;border-radius:12px;background:#0c151b}.customer-migration-editor h4{margin:0 0 10px;font-size:12px;color:#9cece8}.migration-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.migration-grid label{display:grid;gap:5px;color:var(--muted);font-size:10px}.migration-grid input,.migration-grid select{min-height:35px;padding:7px 9px;font-size:11px}.customer-migration-editor>.btn{margin:10px 0 5px;width:100%;min-height:38px;font-size:11px}@media(max-width:600px){.migration-grid{grid-template-columns:1fr}.customer-segment-switch{display:grid;grid-template-columns:1fr 1fr}.customer-segment-btn:last-child{grid-column:1/-1}}</style>
 <style id="account-management-responsive">
 @media(max-width:760px){
  #customersPanel .customer-tools{grid-template-columns:1fr!important}
@@ -603,6 +603,11 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
  </div>
  <div class="actions"><button class="btn primary" id="createCustomer" type="button">Generate Key & Aktifkan Akun</button></div>
  <div class="status" id="customerStatus"></div>
+ <div class="customer-segment-switch">
+  <button type="button" class="customer-segment-btn active" data-segment="regular">Customer Reguler</button>
+  <button type="button" class="customer-segment-btn" data-segment="vip">Customer VIP</button>
+  <button type="button" class="customer-segment-btn" data-segment="all">Semua Customer</button>
+ </div>
  <div class="customer-toolbar">
   <div class="customer-search-wrap"><span>⌕</span><input id="customerSearch" type="search" placeholder="Cari username, ID, WhatsApp, perangkat, paket…"></div>
   <div class="customer-filter-grid">
@@ -813,9 +818,9 @@ function customerDeviceOf(c){
 function renderCustomers(){
  const q=($('customerSearch')?.value||'').trim().toLowerCase();
  const pf=$('customerPackageFilter')?.value||'',sf=$('customerStatusFilter')?.value||'';
- const df=$('customerDeviceFilter')?.value||'',sort=$('customerSort')?.value||'newest';
+ const df=$('customerDeviceFilter')?.value||'',sort=$('customerSort')?.value||'newest',segment=window.customerAdminSegment||'regular';
  const size=Number($('customerPageSize')?.value||25);
- const all=managementCustomersCache.filter(c=>!/^dicky news free guest$/i.test(String(c.name||'')));
+ const all=managementCustomersCache.filter(c=>!/^dicky news free guest$/i.test(String(c.name||''))).filter(c=>{const vip=String(c.subscription?.plan_code||'').startsWith('vip_');return segment==='all'||(segment==='vip'?vip:!vip)});
  const rows=all.filter(c=>{
   const sub=c.subscription,st=customerStatusOf(c),device=customerDeviceOf(c);
   const hay=[c.name,c.id,c.whatsapp,c.device_info,sub?.plan_name,c.last_seen].join(' ').toLowerCase();
@@ -842,7 +847,7 @@ function renderCustomers(){
  let page=Math.min(Math.max(1,Number(window.customerAdminPage||1)),pages);
  window.customerAdminPage=page;
  const start=(page-1)*size,visible=rows.slice(start,start+size);
- $('customerResultMeta').textContent=rows.length?('Menampilkan '+(start+1)+'–'+Math.min(start+size,rows.length)+' dari '+rows.length+' akun hasil filter · '+all.length+' total akun'):'Tidak ada akun yang cocok dengan filter.';
+ $('customerResultMeta').textContent=(segment==='vip'?'Panel Customer VIP':segment==='regular'?'Panel Customer Reguler':'Panel Semua Customer')+' · '+(rows.length?('Menampilkan '+(start+1)+'–'+Math.min(start+size,rows.length)+' dari '+rows.length+' akun · '+all.length+' akun pada panel'):'Tidak ada akun yang cocok dengan filter.');
  if(!visible.length){
   $('customers').innerHTML='<div class="note">Tidak ada akun yang cocok. Ubah filter atau reset pencarian.</div>';
  }else{
@@ -861,9 +866,15 @@ function renderCustomers(){
     '<td><b>'+used.toLocaleString('id-ID')+' / '+(quota?quota.toLocaleString('id-ID'):'∞')+'</b><div class="usage-track"><span style="width:'+pct.toFixed(1)+'%"></span></div><small class="muted">Sisa '+remaining.toLocaleString('id-ID')+' proses</small></td>'+
     '<td><b>'+(days===null?'—':days>0?days+' hari tersisa': 'Sudah habis')+'</b><small class="muted">'+esc(sub?.expires_at?formatLocalDate(sub.expires_at):'Tidak ada tanggal akhir')+'</small></td>'+
     '<td><b>'+esc(device)+'</b><small class="muted">'+esc(ua==='Belum login'?'Belum login':ua.slice(0,110))+'</small><small class="muted">Terlihat: '+esc(c.last_seen?formatLocalDate(c.last_seen):'Belum pernah')+'</small></td>'+
-    '<td class="customer-control-cell"><div class="customer-control-stack"><select class="management-plan" aria-label="Pilih paket customer">'+(planOptions||'<option value="">Paket tidak tersedia</option>')+'</select><button class="btn primary activate-subscription" type="button">Aktifkan / Ganti Paket</button><details class="customer-more"><summary>Kelola akun</summary><div class="customer-more-body"><input class="username-edit" value="'+esc(c.name)+'" maxlength="100" aria-label="Username baru"><button class="btn secondary save-username" type="button">Simpan Username</button><button class="btn secondary key" type="button">Tampilkan Key Permanen</button><button class="btn danger delete-customer" type="button">Hapus Akun</button></div></details></div></td>'+
+    '<td class="customer-control-cell"><div class="customer-control-stack"><select class="management-plan" aria-label="Pilih paket customer">'+(planOptions||'<option value="">Paket tidak tersedia</option>')+'</select><button class="btn primary activate-subscription" type="button">Aktifkan / Ganti Paket</button><details class="customer-more"><summary>Kelola akun</summary><div class="customer-more-body"><input class="username-edit" value="'+esc(c.name)+'" maxlength="100" aria-label="Username baru"><button class="btn secondary save-username" type="button">Simpan Username</button><button class="btn secondary key" type="button">Tampilkan Key Permanen</button><button class="btn danger delete-customer" type="button">Hapus Akun</button></div><div class="customer-migration-editor"><h4>Migrasi & Kontrol Detail</h4><div class="migration-grid"><label>Jenis akun<select class="migration-type"><option value="regular" '+(st==='active'&&!String(sub?.plan_code||'').startsWith('vip_')?'selected':'')+'>Reguler</option><option value="vip" '+(String(sub?.plan_code||'').startsWith('vip_')?'selected':'')+'>VIP</option></select></label><label>Paket tujuan<select class="migration-plan"><option value="">Pilih paket…</option></select></label><label>Hari masa aktif<input class="migration-days" type="number" min="1" max="3650" placeholder="Ikuti paket"></label><label>Mode tanggal<select class="migration-duration-mode"><option value="from_now">Mulai dari sekarang</option><option value="extend_current">Tambah dari sisa masa aktif</option></select></label><label>Kuota penggunaan<input class="migration-quota" type="number" min="1" max="1000000" value="'+(sub?.process_quota||100)+'"></label><label>Penggunaan terpakai<input class="migration-used" type="number" min="0" value="'+(sub?.processes_used||0)+'"></label><label>Maks. ukuran per video (MB)<input class="migration-max-mb" type="number" min="1" max="4096" step="1" value="'+(sub?.max_file_size_mb||'')+'"></label></div><button class="btn primary save-customer-migration" type="button">Simpan Migrasi & Kontrol</button><small class="muted">Migrasi membuat langganan baru, mempertahankan penggunaan saat ini secara default, dan menyimpan jejak audit. Nilai kuota/ukuran dapat disesuaikan untuk akun ini.</small></div></div></td>'+
    '</tr>';
   }).join('')+'</tbody></table></div>';
+ document.querySelectorAll('.management-user').forEach(row=>{
+  const type=row.querySelector('.migration-type'),plan=row.querySelector('.migration-plan');
+  const fill=()=>{const vip=type.value==='vip',items=vip?(vipPlansCache||[]):subscriptionPlansCache.filter(p=>!String(p.plan_code||'').startsWith('vip_'));const current=row.dataset.currentPlan;plan.innerHTML='<option value="">Pilih paket…</option>'+items.filter(p=>p.is_active).map(p=>'<option value="'+p.id+'" '+(String(p.id)===String(current)?'selected':'')+'>'+esc(p.name)+'</option>').join('')};
+  const c=managementCustomersCache.find(x=>String(x.id)===row.dataset.id);row.dataset.currentPlan=c?.subscription?.plan_id||'';
+  type.addEventListener('change',fill);fill();
+ });
  }
  $('customerPagination').innerHTML='<button class="btn secondary page-prev" type="button" '+(page<=1?'disabled':'')+'>Sebelumnya</button><span>Halaman <b>'+page+'</b> / '+pages+'</span><button class="btn secondary page-next" type="button" '+(page>=pages?'disabled':'')+'>Berikutnya</button>';
 }
@@ -1034,6 +1045,7 @@ $('createCustomer').onclick=async()=>{
  }catch(e){setStatus('customerStatus','Gagal membuat akun: '+e.message,'err')}
  finally{button.disabled=false;button.textContent='Generate Key & Aktifkan Akun'}
 };
+document.querySelectorAll('.customer-segment-btn').forEach(b=>b.onclick=()=>{window.customerAdminSegment=b.dataset.segment;window.customerAdminPage=1;document.querySelectorAll('.customer-segment-btn').forEach(x=>x.classList.toggle('active',x===b));renderCustomers()});
 $('customerSearch').oninput=()=>{window.customerAdminPage=1;renderCustomers()};
 ['customerPackageFilter','customerStatusFilter','customerDeviceFilter','customerSort','customerPageSize'].forEach(id=>$(id).onchange=()=>{window.customerAdminPage=1;renderCustomers()});
 $('clearSearch').onclick=()=>{$('customerSearch').value='';$('customerPackageFilter').value='';$('customerStatusFilter').value='';$('customerDeviceFilter').value='';$('customerSort').value='newest';$('customerPageSize').value='25';window.customerAdminPage=1;renderCustomers()};
@@ -1160,6 +1172,21 @@ $('customers').addEventListener('click',async e=>{
    await api('/admin/customers/'+encodeURIComponent(id),{method:'DELETE'});
    await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin(),loadStorageStats()]);
    setStatus('customerStatus','Akun dan data terkait telah diproses server.','ok');return;
+  }
+  if(e.target.closest('.save-customer-migration')){
+   const type=card.querySelector('.migration-type').value,planId=Number(card.querySelector('.migration-plan').value);
+   if(!planId)throw new Error('Pilih paket tujuan migrasi.');
+   const daysRaw=card.querySelector('.migration-days').value,quotaRaw=card.querySelector('.migration-quota').value,usedRaw=card.querySelector('.migration-used').value,maxRaw=card.querySelector('.migration-max-mb').value;
+   const payload={target_type:type,duration_mode:card.querySelector('.migration-duration-mode').value,notes:'Migrasi dan kontrol per customer dari Admin Web'};
+   if(type==='vip')payload.vip_plan_id=planId;else payload.plan_id=planId;
+   if(daysRaw)payload.duration_days=Number(daysRaw);
+   if(quotaRaw)payload.process_quota=Number(quotaRaw);
+   if(usedRaw!=='')payload.processes_used=Number(usedRaw);
+   if(maxRaw)payload.max_file_size_mb=Number(maxRaw);
+   if(!confirm('Terapkan migrasi '+type.toUpperCase()+' untuk customer ID '+id+'? Langganan sebelumnya akan ditandai selesai dan riwayat audit dipertahankan.'))return;
+   const b=e.target.closest('.save-customer-migration');b.disabled=true;
+   try{await api('/admin/customers/'+encodeURIComponent(id)+'/subscription/control',{method:'PUT',body:JSON.stringify(payload)});await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin()]);setStatus('customerStatus','Migrasi dan kontrol customer ID '+id+' berhasil disimpan.','ok')}finally{b.disabled=false}
+   return;
   }
   if(e.target.closest('.save-username')){
    const username=card.querySelector('.username-edit').value.trim();if(username.length<2)throw new Error('Username minimal 2 karakter.');
