@@ -407,6 +407,31 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
  .admin-tab-panel>.card.full-panel,.admin-tab-panel>.grid.full-panel{grid-column:auto}
 }
 
+/* Professional customer management table */
+.customer-toolbar{display:grid;gap:12px;margin-top:20px}
+.customer-search-wrap{position:relative}.customer-search-wrap>span{position:absolute;left:15px;top:8px;font-size:25px;color:var(--muted);pointer-events:none}.customer-search-wrap input{padding-left:45px}
+.customer-filter-grid{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr)) auto;gap:9px}
+.customer-overview{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-top:15px}
+.customer-kpi{min-width:0;background:linear-gradient(145deg,#111c25,#0b1017);border:1px solid #263743;border-radius:13px;padding:12px}
+.customer-kpi small,.customer-kpi span{display:block;color:var(--muted);font-size:10px;letter-spacing:.04em}
+.customer-kpi b{display:block;font-size:22px;margin:5px 0;color:#e9fbff}
+.customer-result-meta{margin:14px 0 8px;color:var(--muted);font-size:12px}
+.customer-table-wrap{width:100%;overflow-x:auto;border:1px solid #26333d;border-radius:15px;background:#090e14}
+.customer-table{width:100%;min-width:1050px;border-collapse:separate;border-spacing:0;font-size:12px}
+.customer-table th{position:sticky;top:0;z-index:1;background:#111b25;color:#9fb3c2;text-align:left;text-transform:uppercase;font-size:10px;letter-spacing:.07em;padding:13px 12px;border-bottom:1px solid #2a3b48}
+.customer-table td{padding:13px 12px;vertical-align:top;border-bottom:1px solid #1d2932}
+.customer-table tbody tr:last-child td{border-bottom:0}.customer-table tbody tr:hover{background:#101923}
+.customer-identity{display:flex;align-items:flex-start;gap:10px;min-width:190px}
+.customer-avatar{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:10px;background:#12333a;color:#65f2ed;font-weight:900;font-size:15px}
+.customer-identity b,.customer-identity small{display:block}.customer-identity b{font-size:13px;overflow-wrap:anywhere}.customer-identity small{margin-top:4px;color:var(--muted);font-size:10px;line-height:1.45}
+.customer-wa{color:#67e8d5;text-decoration:none}.customer-plan-name{font-weight:800;margin-top:7px}.muted{display:block;color:var(--muted);font-size:10px;line-height:1.5;margin-top:4px}
+.badge.warn{background:#3a2b12;color:#ffd27a}
+.usage-track{height:5px;min-width:75px;background:#26313b;border-radius:99px;margin:7px 0 5px;overflow:hidden}.usage-track span{display:block;height:100%;background:linear-gradient(90deg,#20d9d2,#82ef9a);border-radius:99px}
+.customer-control-stack{display:grid;gap:7px;min-width:180px}.customer-control-stack .btn{min-height:36px;padding:8px 10px;font-size:11px}.customer-control-stack select{min-height:36px;padding:7px 9px;font-size:11px}
+.customer-more{border:1px solid #293743;border-radius:9px;padding:7px 9px}.customer-more summary{cursor:pointer;color:#9fe8e5;font-weight:700;font-size:11px}.customer-more-body{display:grid;gap:7px;padding-top:9px}.customer-more-body input{min-height:36px;font-size:11px}
+.customer-pagination{display:flex;align-items:center;justify-content:center;gap:16px;padding:14px 0;color:var(--muted);font-size:12px}.customer-pagination .btn{min-height:36px;padding:7px 12px}
+@media(max-width:900px){.customer-filter-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.customer-overview{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.customer-filter-grid{grid-template-columns:1fr 1fr}.customer-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.customer-kpi:last-child{grid-column:1/-1}.customer-pagination{gap:8px;flex-wrap:wrap}.customer-table{min-width:1050px}}
 </style>
 <style id="account-management-responsive">
 @media(max-width:760px){
@@ -578,13 +603,21 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
  </div>
  <div class="actions"><button class="btn primary" id="createCustomer" type="button">Generate Key & Aktifkan Akun</button></div>
  <div class="status" id="customerStatus"></div>
- <div class="customer-tools" style="margin-top:20px;display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) minmax(150px,1fr) auto;gap:10px">
-  <input id="customerSearch" placeholder="Cari username, ID, WhatsApp, perangkat…">
-  <select id="customerPackageFilter"><option value="">Semua paket</option></select>
-  <select id="customerStatusFilter"><option value="">Semua status</option><option value="active">Aktif</option><option value="expired">Kedaluwarsa</option><option value="inactive">Akun nonaktif</option><option value="none">Belum ada paket</option></select>
-  <button class="btn secondary" id="clearSearch" type="button">Reset</button>
+ <div class="customer-toolbar">
+  <div class="customer-search-wrap"><span>⌕</span><input id="customerSearch" type="search" placeholder="Cari username, ID, WhatsApp, perangkat, paket…"></div>
+  <div class="customer-filter-grid">
+   <select id="customerPackageFilter" aria-label="Filter paket"><option value="">Semua paket</option></select>
+   <select id="customerStatusFilter" aria-label="Filter status"><option value="">Semua status</option><option value="active">Aktif</option><option value="expiring">Segera kedaluwarsa (≤ 7 hari)</option><option value="expired">Kedaluwarsa</option><option value="inactive">Akun nonaktif</option><option value="none">Belum ada paket</option></select>
+   <select id="customerDeviceFilter" aria-label="Filter perangkat"><option value="">Semua perangkat</option><option value="android">Android</option><option value="iphone">iPhone / iOS</option><option value="desktop">Desktop</option><option value="unknown">Belum terdeteksi</option></select>
+   <select id="customerSort" aria-label="Urutkan akun"><option value="newest">Terbaru dibuat</option><option value="oldest">Terlama dibuat</option><option value="name">Username A–Z</option><option value="expiry">Kedaluwarsa terdekat</option><option value="usage">Penggunaan tertinggi</option><option value="last_seen">Terakhir online</option></select>
+   <select id="customerPageSize" aria-label="Jumlah akun per halaman"><option value="10">10 akun</option><option value="25" selected>25 akun</option><option value="50">50 akun</option><option value="100">100 akun</option></select>
+   <button class="btn secondary" id="clearSearch" type="button">Reset filter</button>
+  </div>
  </div>
+ <div id="customerOverview" class="customer-overview"></div>
+ <div id="customerResultMeta" class="customer-result-meta"></div>
  <div id="customers" class="customer-list"><div class="note">Memuat daftar akun…</div></div>
+ <div id="customerPagination" class="customer-pagination"></div>
  <div class="divider" style="margin:22px 0"></div>
  <section class="card" id="vipUserActivationPanel" style="padding:16px;border:1px solid rgba(132,204,22,.45);background:linear-gradient(145deg,rgba(132,204,22,.07),rgba(10,14,20,.96))">
   <div class="card-head">
@@ -755,41 +788,84 @@ $('savePricing').onclick=async()=>{
 async function loadCustomers(){
   const d=await api('/admin/customers');
   customersCache=getList(d);
+  managementCustomersCache=customersCache;
   renderCustomers();
   renderHistoryCustomers();
-  setStatus('customerStatus',customersCache.filter(c=>!/^dicky news free guest$/i.test(customerName(c))).length+' customer terbaca dari API. Akun sistem Free dipisahkan di panel Pengguna Free.','ok');
+  setStatus('customerStatus',managementCustomersCache.filter(c=>!/^dicky news free guest$/i.test(customerName(c))).length+' customer terbaca dari API. Akun sistem Free dipisahkan di panel Pengguna Free.','ok');
 }
-function remainingDays(expiresAt){if(!expiresAt)return null;return Math.max(0,Math.ceil((new Date(expiresAt).getTime()-Date.now())/86400000))}
+function remainingDays(expiresAt){if(!expiresAt)return null;return Math.ceil((new Date(expiresAt).getTime()-Date.now())/86400000)}
+function customerStatusOf(c){
+ const sub=c.subscription,days=sub?remainingDays(sub.expires_at):null;
+ if(!c.is_active)return 'inactive';
+ if(!sub)return 'none';
+ if(sub.status!=='active'||days<=0)return 'expired';
+ if(days<=7)return 'expiring';
+ return 'active';
+}
+function customerDeviceOf(c){
+ const ua=String(c.device_info||'').toLowerCase();
+ if(!ua||ua==='belum login')return 'unknown';
+ if(/iphone|ipad|ipod|ios/.test(ua))return 'iphone';
+ if(/android/.test(ua))return 'android';
+ if(/windows|macintosh|linux|x11/.test(ua))return 'desktop';
+ return 'unknown';
+}
 function renderCustomers(){
- const q=($('customerSearch')?.value||'').trim().toLowerCase(),pf=$('customerPackageFilter')?.value||'',sf=$('customerStatusFilter')?.value||'';
- const rows=managementCustomersCache.filter(c=>!/^dicky news free guest$/i.test(String(c.name||''))).filter(c=>{
-  const sub=c.subscription,days=sub?remainingDays(sub.expires_at):null;
-  const st=!c.is_active?'inactive':!sub?'none':(days===0||sub.status!=='active'?'expired':'active');
-  const hay=[c.name,c.id,c.whatsapp,c.device_info,sub?.plan_name].join(' ').toLowerCase();
-  return (!q||hay.includes(q))&&(!pf||String(sub?.plan_id||'')===pf)&&(!sf||st===sf);
+ const q=($('customerSearch')?.value||'').trim().toLowerCase();
+ const pf=$('customerPackageFilter')?.value||'',sf=$('customerStatusFilter')?.value||'';
+ const df=$('customerDeviceFilter')?.value||'',sort=$('customerSort')?.value||'newest';
+ const size=Number($('customerPageSize')?.value||25);
+ const all=managementCustomersCache.filter(c=>!/^dicky news free guest$/i.test(String(c.name||'')));
+ const rows=all.filter(c=>{
+  const sub=c.subscription,st=customerStatusOf(c),device=customerDeviceOf(c);
+  const hay=[c.name,c.id,c.whatsapp,c.device_info,sub?.plan_name,c.last_seen].join(' ').toLowerCase();
+  return (!q||hay.includes(q))&&(!pf||String(sub?.plan_id||'')===pf)&&(!sf||st===sf)&&(!df||device===df);
  });
- if(!rows.length){$('customers').innerHTML='<div class="note">Tidak ada akun yang cocok dengan filter atau pencarian.</div>';return}
- $('customers').innerHTML=rows.map(c=>{
-  const sub=c.subscription,days=sub?remainingDays(sub.expires_at):null;
-  const status=!c.is_active?'Akun nonaktif':!sub?'Belum ada paket':days===0||sub.status!=='active'?'Kedaluwarsa':'Aktif';
-  const statusClass=status==='Aktif'?'ok':'off',ua=String(c.device_info||'Belum login');
-  const device=ua==='Belum login'?ua:formatDevice(ua)+' · '+ua.slice(0,150);
-  const expiry=sub?formatLocalDate(sub.expires_at):'—';
-  const usage=sub?Number(sub.processes_used||0)+' / '+Number(sub.process_quota||0)+' proses':'—';
-  const remain=sub?Number(sub.processes_remaining||0)+' proses':'—';
-  return '<article class="customer-card management-user" data-id="'+esc(c.id)+'">'+
-   '<div class="customer-main"><div><div class="customer-name">'+esc(c.name)+'</div><div class="customer-meta">ID: '+esc(c.id)+' · WhatsApp: '+(c.whatsapp?'<a href="https://wa.me/'+esc(String(c.whatsapp).replace(/[^0-9]/g,''))+'" target="_blank" rel="noopener noreferrer">'+esc(c.whatsapp)+'</a>':'Tidak diisi')+'</div></div><span class="badge '+statusClass+'">'+esc(status)+'</span></div>'+
-   '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:12px 0">'+
-   '<div class="stat"><small>Paket</small><b>'+esc(sub?.plan_name||'Belum ada')+'</b></div>'+
-   '<div class="stat"><small>Penggunaan</small><b>'+esc(usage)+'</b></div>'+
-   '<div class="stat"><small>Sisa kuota</small><b>'+esc(remain)+'</b></div>'+
-   '<div class="stat"><small>Sisa hari</small><b>'+(days===null?'—':days+' hari')+'</b></div>'+
-   '<div class="stat"><small>Kedaluwarsa</small><b>'+esc(expiry)+'</b></div>'+
-   '<div class="stat"><small>Perangkat terakhir</small><b style="font-size:12px;overflow-wrap:anywhere">'+esc(device)+'</b><small>Terlihat: '+esc(c.last_seen?formatLocalDate(c.last_seen):'Belum login')+'</small></div></div>'+
-   '<div class="customer-actions"><select class="management-plan" aria-label="Pilih paket">'+subscriptionPlansCache.filter(p=>p.is_active).map(p=>'<option value="'+p.id+'" '+(sub&&Number(sub.plan_id)===Number(p.id)?'selected':'')+'>'+esc(p.name)+' · '+p.process_quota+' proses</option>').join('')+'</select><button class="btn primary activate-subscription" type="button">Aktifkan / Ganti Paket</button></div>'+
-   '<div class="customer-actions"><input class="username-edit" value="'+esc(c.name)+'" maxlength="100" placeholder="Username"><button class="btn secondary save-username" type="button">Simpan Username</button><button class="btn secondary key" type="button">Tampilkan Key Permanen</button><button class="btn danger delete-customer" type="button">Hapus Akun</button></div>'+
-   '<div class="key-box result-key hidden"></div></article>';
- }).join('');
+ rows.sort((a,b)=>{
+  if(sort==='name')return String(a.name||'').localeCompare(String(b.name||''),'id');
+  if(sort==='oldest')return Number(a.id)-Number(b.id);
+  if(sort==='expiry')return (a.subscription?.expires_at?new Date(a.subscription.expires_at).getTime():Infinity)-(b.subscription?.expires_at?new Date(b.subscription.expires_at).getTime():Infinity);
+  if(sort==='usage')return Number(b.subscription?.processes_used||0)-Number(a.subscription?.processes_used||0);
+  if(sort==='last_seen')return (b.last_seen?new Date(b.last_seen).getTime():0)-(a.last_seen?new Date(a.last_seen).getTime():0);
+  return Number(b.id)-Number(a.id);
+ });
+ const counts={total:all.length,active:0,expiring:0,expired:0,inactive:0,none:0};
+ all.forEach(c=>counts[customerStatusOf(c)]++);
+ $('customerOverview').innerHTML=[
+  ['TOTAL AKUN',counts.total,'semua customer'],
+  ['AKTIF',counts.active,'paket berjalan'],
+  ['SEGERA HABIS',counts.expiring,'≤ 7 hari'],
+  ['KEDALUWARSA',counts.expired,'perlu tindak lanjut'],
+  ['NONAKTIF / TANPA PAKET',counts.inactive+counts.none,'akun belum aktif']
+ ].map((x,i)=>'<div class="customer-kpi"><small>'+x[0]+'</small><b>'+x[1].toLocaleString('id-ID')+'</b><span>'+x[2]+'</span></div>').join('');
+ const pages=Math.max(1,Math.ceil(rows.length/size));
+ let page=Math.min(Math.max(1,Number(window.customerAdminPage||1)),pages);
+ window.customerAdminPage=page;
+ const start=(page-1)*size,visible=rows.slice(start,start+size);
+ $('customerResultMeta').textContent=rows.length?('Menampilkan '+(start+1)+'–'+Math.min(start+size,rows.length)+' dari '+rows.length+' akun hasil filter · '+all.length+' total akun'):'Tidak ada akun yang cocok dengan filter.';
+ if(!visible.length){
+  $('customers').innerHTML='<div class="note">Tidak ada akun yang cocok. Ubah filter atau reset pencarian.</div>';
+ }else{
+  $('customers').innerHTML='<div class="customer-table-wrap"><table class="customer-table"><thead><tr><th>Customer</th><th>Status & Paket</th><th>Penggunaan</th><th>Masa aktif</th><th>Perangkat terakhir</th><th class="actions-col">Kontrol</th></tr></thead><tbody>'+
+  visible.map(c=>{
+   const sub=c.subscription,days=sub?remainingDays(sub.expires_at):null,st=customerStatusOf(c);
+   const labels={active:'Aktif',expiring:'Segera habis',expired:'Kedaluwarsa',inactive:'Nonaktif',none:'Belum ada paket'};
+   const ua=String(c.device_info||'Belum login'),device=ua==='Belum login'?'Belum terdeteksi':formatDevice(ua);
+   const used=Number(sub?.processes_used||0),quota=Number(sub?.process_quota||0),remaining=Number(sub?.processes_remaining||0);
+   const pct=quota>0?Math.min(100,Math.max(0,used/quota*100)):0;
+   const phone=c.whatsapp?'<a class="customer-wa" href="https://wa.me/'+esc(String(c.whatsapp).replace(/[^0-9]/g,''))+'" target="_blank" rel="noopener noreferrer">'+esc(c.whatsapp)+'</a>':'<span class="muted">WhatsApp belum diisi</span>';
+   const planOptions=subscriptionPlansCache.filter(p=>p.is_active).map(p=>'<option value="'+p.id+'" '+(sub&&Number(sub.plan_id)===Number(p.id)?'selected':'')+'>'+esc(p.name)+'</option>').join('');
+   return '<tr class="management-user" data-id="'+esc(c.id)+'">'+
+    '<td><div class="customer-identity"><span class="customer-avatar">'+esc(String(c.name||'U').trim().slice(0,1).toUpperCase())+'</span><div><b class="customer-name">'+esc(c.name)+'</b><small>ID #'+esc(c.id)+' · '+phone+'</small><small>Terdaftar: '+esc(c.created_at?formatLocalDate(c.created_at):'Tanggal tidak tersedia')+'</small></div></div></td>'+
+    '<td><span class="badge '+(st==='active'?'ok':st==='expiring'?'warn':'off')+'">'+labels[st]+'</span><div class="customer-plan-name">'+esc(sub?.plan_name||'Tanpa paket')+'</div><small class="muted">'+esc(sub?.status||'—')+'</small></td>'+
+    '<td><b>'+used.toLocaleString('id-ID')+' / '+(quota?quota.toLocaleString('id-ID'):'∞')+'</b><div class="usage-track"><span style="width:'+pct.toFixed(1)+'%"></span></div><small class="muted">Sisa '+remaining.toLocaleString('id-ID')+' proses</small></td>'+
+    '<td><b>'+(days===null?'—':days>0?days+' hari tersisa': 'Sudah habis')+'</b><small class="muted">'+esc(sub?.expires_at?formatLocalDate(sub.expires_at):'Tidak ada tanggal akhir')+'</small></td>'+
+    '<td><b>'+esc(device)+'</b><small class="muted">'+esc(ua==='Belum login'?'Belum login':ua.slice(0,110))+'</small><small class="muted">Terlihat: '+esc(c.last_seen?formatLocalDate(c.last_seen):'Belum pernah')+'</small></td>'+
+    '<td class="customer-control-cell"><div class="customer-control-stack"><select class="management-plan" aria-label="Pilih paket customer">'+(planOptions||'<option value="">Paket tidak tersedia</option>')+'</select><button class="btn primary activate-subscription" type="button">Aktifkan / Ganti Paket</button><details class="customer-more"><summary>Kelola akun</summary><div class="customer-more-body"><input class="username-edit" value="'+esc(c.name)+'" maxlength="100" aria-label="Username baru"><button class="btn secondary save-username" type="button">Simpan Username</button><button class="btn secondary key" type="button">Tampilkan Key Permanen</button><button class="btn danger delete-customer" type="button">Hapus Akun</button></div></details></div></td>'+
+   '</tr>';
+  }).join('')+'</tbody></table></div>';
+ }
+ $('customerPagination').innerHTML='<button class="btn secondary page-prev" type="button" '+(page<=1?'disabled':'')+'>Sebelumnya</button><span>Halaman <b>'+page+'</b> / '+pages+'</span><button class="btn secondary page-next" type="button" '+(page>=pages?'disabled':'')+'>Berikutnya</button>';
 }
 async function adjustCard(card){
   const id=card.dataset.id;
@@ -958,12 +1034,10 @@ $('createCustomer').onclick=async()=>{
  }catch(e){setStatus('customerStatus','Gagal membuat akun: '+e.message,'err')}
  finally{button.disabled=false;button.textContent='Generate Key & Aktifkan Akun'}
 };
-$('customerSearch').oninput=renderCustomers;
-$('customerPackageFilter').onchange=renderCustomers;
-$('customerStatusFilter').onchange=renderCustomers;
-$('clearSearch').onclick=()=>{$('customerSearch').value='';$('customerPackageFilter').value='';$('customerStatusFilter').value='';renderCustomers()};
-$('customerSearch').oninput=renderCustomers;
-$('clearSearch').onclick=()=>{$('customerSearch').value='';$('customerPackageFilter').value='';$('customerStatusFilter').value='';renderCustomers()};
+$('customerSearch').oninput=()=>{window.customerAdminPage=1;renderCustomers()};
+['customerPackageFilter','customerStatusFilter','customerDeviceFilter','customerSort','customerPageSize'].forEach(id=>$(id).onchange=()=>{window.customerAdminPage=1;renderCustomers()});
+$('clearSearch').onclick=()=>{$('customerSearch').value='';$('customerPackageFilter').value='';$('customerStatusFilter').value='';$('customerDeviceFilter').value='';$('customerSort').value='newest';$('customerPageSize').value='25';window.customerAdminPage=1;renderCustomers()};
+$('customerPagination').addEventListener('click',e=>{if(e.target.closest('.page-prev'))window.customerAdminPage=Math.max(1,(window.customerAdminPage||1)-1);else if(e.target.closest('.page-next'))window.customerAdminPage=(window.customerAdminPage||1)+1;else return;renderCustomers()});
 function formatBytes(value){
   const n=Number(value);
   if(!Number.isFinite(n)||n<0)return '—';
