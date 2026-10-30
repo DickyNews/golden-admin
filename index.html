@@ -432,7 +432,21 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
 .customer-pagination{display:flex;align-items:center;justify-content:center;gap:16px;padding:14px 0;color:var(--muted);font-size:12px}.customer-pagination .btn{min-height:36px;padding:7px 12px}
 @media(max-width:900px){.customer-filter-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.customer-overview{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.customer-filter-grid{grid-template-columns:1fr 1fr}.customer-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.customer-kpi:last-child{grid-column:1/-1}.customer-pagination{gap:8px;flex-wrap:wrap}.customer-table{min-width:1050px}}
-.customer-segment-switch{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding:5px;border:1px solid #263743;border-radius:13px;background:#090e14}.customer-segment-btn{border:1px solid transparent;background:transparent;color:#9fb3c2;border-radius:9px;padding:10px 14px;font-weight:800}.customer-segment-btn.active{background:#16343a;border-color:#25646b;color:#8af5ec}.customer-migration-editor{margin-top:12px;padding:12px;border:1px solid #28414a;border-radius:12px;background:#0c151b}.customer-migration-editor h4{margin:0 0 10px;font-size:12px;color:#9cece8}.migration-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.migration-grid label{display:grid;gap:5px;color:var(--muted);font-size:10px}.migration-grid input,.migration-grid select{min-height:35px;padding:7px 9px;font-size:11px}.customer-migration-editor>.btn{margin:10px 0 5px;width:100%;min-height:38px;font-size:11px}@media(max-width:600px){.migration-grid{grid-template-columns:1fr}.customer-segment-switch{display:grid;grid-template-columns:1fr 1fr}.customer-segment-btn:last-child{grid-column:1/-1}}</style>
+.customer-segment-switch{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding:5px;border:1px solid #263743;border-radius:13px;background:#090e14}.customer-segment-btn{border:1px solid transparent;background:transparent;color:#9fb3c2;border-radius:9px;padding:10px 14px;font-weight:800}.customer-segment-btn.active{background:#16343a;border-color:#25646b;color:#8af5ec}.customer-migration-editor{margin-top:12px;padding:12px;border:1px solid #28414a;border-radius:12px;background:#0c151b}.customer-migration-editor h4{margin:0 0 10px;font-size:12px;color:#9cece8}.migration-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.migration-grid label{display:grid;gap:5px;color:var(--muted);font-size:10px}.migration-grid input,.migration-grid select{min-height:35px;padding:7px 9px;font-size:11px}.customer-migration-editor>.btn{margin:10px 0 5px;width:100%;min-height:38px;font-size:11px}@media(max-width:600px){.migration-grid{grid-template-columns:1fr}.customer-segment-switch{display:grid;grid-template-columns:1fr 1fr}.customer-segment-btn:last-child{grid-column:1/-1}}
+/* Customer device audit trail */
+.device-history{margin-top:9px;border:1px solid rgba(98,243,255,.16);border-radius:9px;background:rgba(4,10,18,.55);overflow:hidden}
+.device-history summary{padding:8px 9px;color:#8cecff;font-size:11px;font-weight:800;cursor:pointer;list-style:none}
+.device-history summary::-webkit-details-marker{display:none}
+.device-history summary:after{content:'＋';float:right;color:#a78bfa}
+.device-history[open] summary:after{content:'−'}
+.device-history-list{display:grid;gap:7px;padding:0 8px 8px;max-height:210px;overflow:auto}
+.device-history-item{display:grid;grid-template-columns:1fr auto;gap:3px 8px;padding:8px;border-top:1px solid rgba(255,255,255,.08);font-size:10px;color:#aab8cb}
+.device-history-item b{font-size:11px;color:#f4f8ff;overflow-wrap:anywhere}
+.device-history-item small{grid-column:1/-1;color:#8d9bb0;overflow-wrap:anywhere}
+.device-history-state{font-size:9px;font-weight:900;letter-spacing:.06em;align-self:center}
+.device-history-state.current{color:#65fbd2}.device-history-state.ended{color:#ff9caf}
+.device-history-empty{display:block;margin-top:5px;color:#77879b;font-size:10px;line-height:1.4}
+</style>
 <style id="account-management-responsive">
 @media(max-width:760px){
  #customersPanel .customer-tools{grid-template-columns:1fr!important}
@@ -815,6 +829,16 @@ function customerDeviceOf(c){
  if(/windows|macintosh|linux|x11/.test(ua))return 'desktop';
  return 'unknown';
 }
+function renderDeviceHistory(c){
+ const history=Array.isArray(c.device_history)?c.device_history:[];
+ if(!history.length)return '<small class="device-history-empty">Riwayat perangkat tercatat mulai login berikutnya.</small>';
+ return '<details class="device-history"><summary>Riwayat perangkat · '+history.length+'</summary><div class="device-history-list">'+history.map(h=>{
+  const current=!!h.is_current;
+  const inAt=h.logged_in_at?formatLocalDate(h.logged_in_at):'Waktu tidak tersedia';
+  const outAt=h.logged_out_at?formatLocalDate(h.logged_out_at):'Masih aktif';
+  return '<div class="device-history-item"><b>'+esc(formatDevice(h.device_info||'Unknown'))+'</b><span class="device-history-state '+(current?'current':'ended')+'">'+(current?'PERANGKAT AKTIF':'SESI BERAKHIR')+'</span><small>Masuk: '+esc(inAt)+'</small><small>Keluar: '+esc(outAt)+'</small>'+(h.logout_reason?'<small>Alasan: '+esc(h.logout_reason)+'</small>':'')+'</div>';
+ }).join('')+'</div></details>';
+}
 function renderCustomers(){
  const q=($('customerSearch')?.value||'').trim().toLowerCase();
  const pf=$('customerPackageFilter')?.value||'',sf=$('customerStatusFilter')?.value||'';
@@ -866,7 +890,7 @@ function renderCustomers(){
     '<td><span class="badge '+(st==='active'?'ok':st==='expiring'?'warn':'off')+'">'+labels[st]+'</span><div class="customer-plan-name">'+esc(sub?.plan_name||'Tanpa paket')+'</div><small class="muted">'+esc(sub?.status||'—')+'</small></td>'+
     '<td><b>'+used.toLocaleString('id-ID')+' / '+(quota?quota.toLocaleString('id-ID'):'∞')+'</b><div class="usage-track"><span style="width:'+pct.toFixed(1)+'%"></span></div><small class="muted">Sisa '+remaining.toLocaleString('id-ID')+' proses</small></td>'+
     '<td><b>'+(days===null?'—':days>0?days+' hari tersisa': 'Sudah habis')+'</b><small class="muted">'+esc(sub?.expires_at?formatLocalDate(sub.expires_at):'Tidak ada tanggal akhir')+'</small></td>'+
-    '<td><b>'+esc(device)+'</b><small class="muted">'+esc(ua==='Belum login'?'Belum login':ua.slice(0,110))+'</small><small class="muted">Terlihat: '+esc(c.last_seen?formatLocalDate(c.last_seen):'Belum pernah')+'</small></td>'+
+    '<td><b>'+esc(device)+'</b><small class="muted">'+esc(ua==='Belum login'?'Belum login':ua.slice(0,110))+'</small><small class="muted">Terlihat: '+esc(c.last_seen?formatLocalDate(c.last_seen):'Belum pernah')+'</small>'+renderDeviceHistory(c)+'</td>'+
     '<td class="customer-control-cell"><div class="customer-control-stack"><select class="management-plan" aria-label="Pilih paket customer">'+(planOptions||'<option value="">Paket tidak tersedia</option>')+'</select><button class="btn primary activate-subscription" type="button">Aktifkan / Ganti Paket</button><details class="customer-more"><summary>Kelola akun</summary><div class="customer-more-body"><input class="username-edit" value="'+esc(c.name)+'" maxlength="100" aria-label="Username baru"><button class="btn secondary save-username" type="button">Simpan Username</button><button class="btn secondary key" type="button">Tampilkan Key Permanen</button><button class="btn danger delete-customer" type="button">Hapus Akun</button></div><div class="customer-migration-editor"><h4>Migrasi & Kontrol Detail</h4><div class="migration-grid"><label>Jenis akun<select class="migration-type"><option value="regular" '+(st==='active'&&!String(sub?.plan_code||'').startsWith('vip_')?'selected':'')+'>Reguler</option><option value="vip" '+(String(sub?.plan_code||'').startsWith('vip_')?'selected':'')+'>VIP</option></select></label><label>Paket tujuan<select class="migration-plan"><option value="">Pilih paket…</option></select></label><label>Hari masa aktif<input class="migration-days" type="number" min="1" max="3650" placeholder="Ikuti paket"></label><label>Mode tanggal<select class="migration-duration-mode"><option value="from_now">Mulai dari sekarang</option><option value="extend_current">Tambah dari sisa masa aktif</option></select></label><label>Kuota penggunaan<input class="migration-quota" type="number" min="1" max="1000000" value="'+(sub?.process_quota||100)+'"></label><label>Penggunaan terpakai<input class="migration-used" type="number" min="0" value="'+(sub?.processes_used||0)+'"></label><label>Maks. ukuran per video (MB)<input class="migration-max-mb" type="number" min="1" max="4096" step="1" value="'+(sub?.max_file_size_mb||'')+'"></label></div><button class="btn primary save-customer-migration" type="button">Simpan Migrasi & Kontrol</button><small class="muted">Migrasi membuat langganan baru, mempertahankan penggunaan saat ini secara default, dan menyimpan jejak audit. Nilai kuota/ukuran dapat disesuaikan untuk akun ini.</small></div></details></div></td>'+
    '</tr>';
   }).join('')+'</tbody></table></div>';
