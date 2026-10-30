@@ -1097,7 +1097,7 @@ $('customers').addEventListener('click',async e=>{
    const b=e.target.closest('.key');b.disabled=true;await generateCard(card);
   }
  }catch(err){setStatus('customerStatus','Gagal menjalankan kontrol akun: '+err.message,'err')}
- finally{card.querySelectorAll('button').forEach(b=>{if(b.textContent!=='Menghapus…')b.disabled=false})}
+ finally{card.querySelectorAll('button').forEach(b=>{b.disabled=false;if(b.classList.contains('delete-customer'))b.textContent='Hapus Akun'})}
 });
 function formatLocalDate(value){
   if(!value)return 'Waktu tidak tersedia';
