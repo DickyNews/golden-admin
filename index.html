@@ -1274,7 +1274,7 @@ $('customers').addEventListener('click',async e=>{
     await Promise.all([loadCustomers(),loadSubscriptionCustomersAdmin()]);
     const saved=result.subscription||{};
     setStatus('customerStatus','Batas aktif diperbarui tanpa migrasi. Maksimum '+(Number(saved.max_file_size_mb||maxRaw||0))+' MB; kuota '+(saved.processes_used??usedRaw??0)+' / '+(saved.process_quota??quotaRaw??0)+'.','ok');
-   }finally{b.disabled=false;b.textContent='Simpan Batas & Kuota Saja'}
+   }finally{b.disabled=false;b.textContent='Simpan Batas Aktif Saja'}
    return;
   }
   if(e.target.closest('.save-customer-migration')){
