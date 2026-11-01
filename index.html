@@ -446,6 +446,65 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
 .device-history-state{font-size:9px;font-weight:900;letter-spacing:.06em;align-self:center}
 .device-history-state.current{color:#65fbd2}.device-history-state.ended{color:#ff9caf}
 .device-history-empty{display:block;margin-top:5px;color:#77879b;font-size:10px;line-height:1.4}
+
+/* Desktop layout repair: keep workspace tabs and panels in normal document flow. */
+@media (min-width: 761px) {
+  main.app {
+    display: block !important;
+    width: min(1440px, calc(100% - 40px));
+    margin: 0 auto;
+    padding: 18px 0 48px;
+  }
+  .admin-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+    margin: 0 0 16px;
+    position: sticky;
+    top: 70px;
+  }
+  .admin-tab {
+    min-width: 0;
+    width: 100%;
+    white-space: normal;
+    line-height: 1.25;
+  }
+  .admin-tab-panel {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+  .admin-tab-panel[hidden] { display: none !important; }
+  .admin-tabs-summary {
+    width: 100%;
+    margin: 0 0 14px;
+    padding: 0 2px;
+  }
+  .admin-tab-panel > .card,
+  .admin-tab-panel > .grid {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0 0 14px;
+  }
+  .admin-tab-panel > .grid { display: grid; }
+  .customer-filter-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+    gap: 10px;
+  }
+  .customer-filter-grid > * { min-width: 0; }
+  .customer-toolbar,
+  .customer-overview,
+  .customer-table-wrap { min-width: 0; max-width: 100%; }
+  .customer-table-wrap { overflow-x: auto; }
+  #freeUsageHistory { max-width: 100%; }
+}
+@media (min-width: 761px) and (max-width: 1100px) {
+  .admin-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .customer-filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 </style>
 <style id="account-management-responsive">
 @media(max-width:760px){
