@@ -875,7 +875,13 @@ $('savePricing').onclick=async()=>{
 async function loadCustomers(){
   const d=await api('/admin/customers');
   customersCache=getList(d);
-  managementCustomersCache=customersCache;
+  // Keep subscription data from /admin/subscriptions when the parallel /admin/customers
+  // request finishes later. The latter endpoint is not the source of subscription state.
+  const subscriptionByCustomer=new Map(managementCustomersCache.map(c=>[String(c.id),c.subscription]));
+  managementCustomersCache=customersCache.map(c=>({
+    ...c,
+    subscription:subscriptionByCustomer.get(String(c.id))??c.subscription??null
+  }));
   renderCustomers();
   renderHistoryCustomers();
   setStatus('customerStatus',managementCustomersCache.filter(c=>!/^dicky news free guest$/i.test(customerName(c))).length+' customer terbaca dari API. Akun sistem Free dipisahkan di panel Pengguna Free.','ok');
