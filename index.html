@@ -1283,6 +1283,8 @@ $('customers').addEventListener('click',async e=>{
    const daysRaw=card.querySelector('.migration-days').value;
    const payload={target_type:type,duration_mode:card.querySelector('.migration-duration-mode').value,notes:'Migrasi paket dari Admin Web'};
    if(type==='vip')payload.vip_plan_id=planId;else payload.plan_id=planId;
+   const durationMode=card.querySelector('.migration-duration-mode').value;
+   if(durationMode==='extend_current'&&!daysRaw)throw new Error('Isi jumlah hari tambahan untuk mode tambah dari sisa masa aktif.');
    if(daysRaw)payload.duration_days=Number(daysRaw);
    if(!confirm('Ganti paket customer ID '+id+' ke '+type.toUpperCase()+'? Paket aktif sebelumnya akan ditutup dan riwayat audit tetap dipertahankan.'))return;
    const b=e.target.closest('.save-customer-migration');b.disabled=true;
@@ -1479,6 +1481,9 @@ $('createVipCustomer').onclick=async()=>{
 async function loadVipPlansAdmin(){
  const d=await api('/admin/vip/plans'),plans=Array.isArray(d.plans)?d.plans:[];
  vipPlansCache=plans;
+ // The VIP plan request runs in parallel with customer loading. Refresh already-rendered
+ // migration selectors so VIP choices are available regardless of which request finishes first.
+ document.querySelectorAll('.management-user .migration-type').forEach(type=>type.dispatchEvent(new Event('change')));
  renderVipActivationChoices();
  $('vipPlansAdmin').innerHTML=plans.length?plans.map(p=>'<article class="card" style="padding:14px;min-width:0" data-vip-plan-id="'+p.id+'"><h3>'+esc(p.name)+'</h3><div class="field"><label>Nama paket VIP</label><input data-vip-f="name" value="'+esc(p.name)+'"></div><div class="field"><label>Harga (Rupiah)</label><input data-vip-f="price_idr" type="number" min="0" step="1000" value="'+Number(p.price_idr||0)+'"></div><div class="field"><label>Maks. ukuran video (MB)</label><input data-vip-f="max_file_size_mb" type="number" min="1" max="4096" step="1" value="'+Number(p.max_file_size_mb||1)+'"></div><div class="field"><label>Masa aktif (hari)</label><input data-vip-f="duration_days" type="number" min="1" max="3650" value="'+Number(p.duration_days||30)+'"></div><div class="field"><label>Urutan tampil</label><input data-vip-f="sort_order" type="number" min="1" value="'+Number(p.sort_order||1)+'"></div><div class="field"><label>Status paket</label><select data-vip-f="is_active"><option value="true" '+(p.is_active?'selected':'')+'>Aktif</option><option value="false" '+(!p.is_active?'selected':'')+'>Nonaktif</option></select></div><button class="btn primary save-vip-plan" type="button">Simpan Paket VIP</button></article>').join(''):'<p>API tidak mengembalikan paket VIP. Periksa endpoint /admin/vip/plans.</p>';
 }
