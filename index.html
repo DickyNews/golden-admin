@@ -622,10 +622,11 @@ input,select{min-height:40px;padding:9px 10px;border-radius:9px}
         <div class="field"><label>Peringatan CPU (%)</label><input id="cpuWarning" type="number" min="50" max="99" step="1"></div>
         <div class="field"><label>Peringatan RAM (%)</label><input id="ramWarning" type="number" min="50" max="99" step="1"></div>
         <div class="field"><label>Peringatan storage (%)</label><input id="diskWarning" type="number" min="50" max="99" step="1"></div>
+        <div class="field full"><label for="activeEngine">Pilihan mesin untuk job customer</label><select id="activeEngine"><option value="primary">Mesin Utama · Golden SDR</option><option value="rtx">Mesin RTX · Eksperimental</option></select></div>
       </div>
       <div class="actions"><button class="btn primary" id="saveServerSettings">Simpan Pengaturan Monitoring</button></div>
       <div class="status" id="serverSettingsStatus"></div>
-      <div class="note" style="margin-top:12px">Tombol Segarkan Semua memperbarui status server, setting layanan, customer, koneksi API, storage, dan pengaturan pada halaman tanpa tombol refresh browser. Pengaturan monitoring tidak mengubah algoritma mesin atau video dan tidak me-restart layanan.</div>
+      <div class="note" style="margin-top:12px">Tombol Segarkan Semua memperbarui status server, setting layanan, customer, koneksi API, storage, dan pengaturan pada halaman tanpa tombol refresh browser. Pilihan mesin tersimpan di backend sebagai konfigurasi. Pengalihan job customer ke RTX belum diaktifkan; seluruh job tetap memakai Mesin Utama sampai routing dan validasi MP4 RTX selesai. Pengaturan monitoring tidak me-restart layanan.</div>
     </section>
 
 
@@ -1410,7 +1411,7 @@ function formatDuration(seconds){let s=Math.max(0,Number(seconds)||0);const d=Ma
 function pct(v){return Number.isFinite(Number(v))?Math.max(0,Math.min(100,Number(v))):0}
 async function loadServerSettings(){
  const d=await api('/admin/server/settings');serverSettingsCache=d.settings||serverSettingsCache;
- $('serverRefreshSeconds').value=String(serverSettingsCache.refresh_seconds);$('cpuWarning').value=serverSettingsCache.cpu_warning_percent;$('ramWarning').value=serverSettingsCache.ram_warning_percent;$('diskWarning').value=serverSettingsCache.disk_warning_percent;applyServerRefreshTimer();
+ $('serverRefreshSeconds').value=String(serverSettingsCache.refresh_seconds);$('cpuWarning').value=serverSettingsCache.cpu_warning_percent;$('ramWarning').value=serverSettingsCache.ram_warning_percent;$('diskWarning').value=serverSettingsCache.disk_warning_percent;$('activeEngine').value=serverSettingsCache.active_engine||'primary';applyServerRefreshTimer();
 }
 function applyServerRefreshTimer(){
  if(serverRefreshTimer)clearInterval(serverRefreshTimer);
@@ -1449,7 +1450,7 @@ async function loadServerStatus(){
    throw e;
  }
 }
-$('saveServerSettings').onclick=async()=>{const data={refresh_seconds:Number($('serverRefreshSeconds').value),cpu_warning_percent:Number($('cpuWarning').value),ram_warning_percent:Number($('ramWarning').value),disk_warning_percent:Number($('diskWarning').value)};try{$('saveServerSettings').disabled=true;const d=await api('/admin/server/settings',{method:'PUT',body:JSON.stringify(data)});serverSettingsCache=d.settings;await loadServerSettings();await loadServerStatus();$('settingsSavedBadge').textContent='TERSIMPAN';$('settingsSavedBadge').className='badge ok';setStatus('serverSettingsStatus','Pengaturan tersimpan di server dan interval refresh diperbarui.','ok')}catch(e){setStatus('serverSettingsStatus','Gagal menyimpan: '+e.message,'err')}finally{$('saveServerSettings').disabled=false}};
+$('saveServerSettings').onclick=async()=>{const data={refresh_seconds:Number($('serverRefreshSeconds').value),cpu_warning_percent:Number($('cpuWarning').value),ram_warning_percent:Number($('ramWarning').value),disk_warning_percent:Number($('diskWarning').value),active_engine:$('activeEngine').value};try{$('saveServerSettings').disabled=true;const d=await api('/admin/server/settings',{method:'PUT',body:JSON.stringify(data)});serverSettingsCache=d.settings;await loadServerSettings();await loadServerStatus();$('settingsSavedBadge').textContent='TERSIMPAN';$('settingsSavedBadge').className='badge ok';setStatus('serverSettingsStatus','Pengaturan tersimpan di server dan interval refresh diperbarui.','ok')}catch(e){setStatus('serverSettingsStatus','Gagal menyimpan: '+e.message,'err')}finally{$('saveServerSettings').disabled=false}};
 
 
 
