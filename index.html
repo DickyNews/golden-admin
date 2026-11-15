@@ -1372,30 +1372,28 @@ $('refreshFreeUsage').onclick=async()=>{
 };
 
 
-// SECURITY: every fresh page load must start logged out.
-// Invalidate any prior server-side admin session; never auto-restore the dashboard.
-$('dashboard').classList.remove('ready');
-$('dashboard').style.display='none';
-$('loginView').classList.remove('hidden');
+// Restore the existing admin session on refresh; never call logout during page startup.
 (async()=>{
+  $('dashboard').classList.remove('ready');
+  $('dashboard').style.display='none';
+  $('loginView').classList.remove('hidden');
   try{
-    await api('/admin/logout',{method:'POST'});
-    setStatus('loginStatus','Sesi sebelumnya telah diakhiri. Silakan login untuk melanjutkan.','info');
+    await api('/admin/me');
+    await openDashboard();
   }catch(e){
-    // Keep the dashboard hidden even if logout could not be confirmed.
-    setStatus('loginStatus','Halaman tetap terkunci. Namun sesi server lama belum dapat dikonfirmasi berakhir: '+e.message,'err');
+    setStatus('loginStatus','Sesi admin tidak tersedia atau sudah kedaluwarsa. Silakan login kembali.','info');
   }
 })();
-// Public health is checked without making authenticated admin requests before login.
+// Public health is checked independently from admin authentication.
 (async()=>{
  try{
   const r=await fetch(API_BASE+'/health',{cache:'no-store',signal:AbortSignal.timeout(15000)});
   if(!r.ok)throw new Error('HTTP '+r.status);
   $('apiBadge').textContent='API ONLINE';$('apiBadge').className='badge ok';
-  $('healthBadge').textContent='LOGIN DIPERLUKAN';$('healthBadge').className='badge';
+  $('healthBadge').textContent='Memeriksa sesi admin';$('healthBadge').className='badge';
   $('healthText').textContent='API merespons';
-  $('databaseHealthText').textContent='Periksa setelah login admin';
-  setStatus('healthStatus','API dapat dijangkau. Status database akan diperiksa setelah login admin.','info');
+  $('databaseHealthText').textContent='Status database mengikuti sesi admin';
+  setStatus('healthStatus','API dapat dijangkau.','info');
  }catch(e){
   $('apiBadge').textContent='API ERROR';$('apiBadge').className='badge off';
   $('healthBadge').textContent='ERROR';$('healthBadge').className='badge off';
